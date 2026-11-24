@@ -1,0 +1,213 @@
+﻿@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+<div class="py-5">
+
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">Admin Panel</h1>
+        <p class="text-muted mb-0">
+            Manage the main entities of the NextVibe database.
+        </p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Users</h6>
+                    <h2 class="fw-bold">@ViewBag.UsersCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Artists</h6>
+                    <h2 class="fw-bold">@ViewBag.ArtistsCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Genres</h6>
+                    <h2 class="fw-bold">@ViewBag.GenresCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Moods</h6>
+                    <h2 class="fw-bold">@ViewBag.MoodsCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Favorites</h6>
+                    <h2 class="fw-bold">@ViewBag.FavoritesCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Artist Moods</h6>
+                    <h2 class="fw-bold">@ViewBag.ArtistMoodsCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Albums</h6>
+                    <h2 class="fw-bold">@ViewBag.AlbumsCount</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Tracks</h6>
+                    <h2 class="fw-bold">@ViewBag.TracksCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Artists</h4>
+                    <p class="text-muted flex-grow-1">
+                        Create, edit, view and delete artists from the database.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="Artists" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                        <a asp-controller="Artists" asp-action="Create" class="btn btn-outline-light">Create New</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Genres</h4>
+                    <p class="text-muted flex-grow-1">
+                        Manage music genres used by the artists.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="Genres" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                        <a asp-controller="Genres" asp-action="Create" class="btn btn-outline-light">Create New</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Moods</h4>
+                    <p class="text-muted flex-grow-1">
+                        Manage moods used for artist categorization.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="Moods" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                        <a asp-controller="Moods" asp-action="Create" class="btn btn-outline-light">Create New</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Users</h4>
+                    <p class="text-muted flex-grow-1">
+                        View and manage registered users.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="Users" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Favorites</h4>
+                    <p class="text-muted flex-grow-1">
+                        Inspect user favorites stored in the application.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="UserFavoriteArtists" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card bg-dark text-white border-secondary shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="fw-bold">Artist Moods</h4>
+                    <p class="text-muted flex-grow-1">
+                        Manage the relationships between artists and moods.
+                    </p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-controller="ArtistMoods" asp-action="Index" class="btn btn-primary nv-btn-primary">View All</a>
+                        <a asp-controller="ArtistMoods" asp-action="Create" class="btn btn-outline-light">Create One</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card bg-dark text-white border-secondary h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="fw-bold mb-2">Albums</h5>
+                    <p class="text-muted flex-grow-1">
+                        Manage artist albums, release years, descriptions and cover images.
+                    </p>
+
+                    <a asp-controller="ArtistAlbums"
+                           asp-action="Manage"
+                           class="btn btn-primary nv-btn-primary mt-auto">
+                        Manage Albums
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card bg-dark text-white border-secondary h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="fw-bold mb-2">Tracks</h5>
+                    <p class="text-muted flex-grow-1">
+                        Manage album tracks, top track status and track durations.
+                    </p>
+
+                    <a asp-controller="AlbumTracks"
+                           asp-action="Index"
+                           class="btn btn-primary nv-btn-primary mt-auto">
+                        Manage Tracks
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

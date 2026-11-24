@@ -1,0 +1,378 @@
+@{
+    ViewData["Title"] = "Finish the Lyric - NextVibe Games";
+    var difficulty = (ViewBag.Difficulty as string) ?? "Easy";
+    var artistId = ViewBag.ArtistId as int?;
+}
+
+<div class="arena-container" id="lyricArena">
+    <!-- Header -->
+    <div class="arena-header">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">← Menu</a>
+            <span class="arena-round" id="roundIndicator">Loading...</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge" id="diffBadge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);">
+                LEVEL: @difficulty.ToUpper()
+            </span>
+            <div class="arena-score" id="scoreIndicator">0 pts</div>
+        </div>
+    </div>
+
+    <!-- Active Round View -->
+    <div id="roundView">
+        <!-- Track & Artist Badge -->
+        <div class="text-center mb-3">
+            <span class="badge bg-secondary py-2 px-3 fs-6" id="trackArtistBadge">
+                🎵 ...
+            </span>
+        </div>
+
+        <!-- Lyrics Card Display -->
+        <div class="card p-4 my-3 text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+            <div style="font-size: 1.25rem; line-height: 1.8; font-style: italic; color: #e2e8f0; white-space: pre-line;" id="lyricsDisplay">
+                Loading lyrics...
+            </div>
+        </div>
+
+        <!-- Difficulty Toggle & Hint -->
+        <div class="hint-bar mb-3">
+            <div>
+                <span class="small text-muted" id="potentialScoreText">Possible score: 100 pts</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning" id="hintBtn" onclick="useLyricHint()">
+                    💡 Hint (-25 pts)
+                </button>
+                <button class="btn btn-sm btn-outline-info" id="modeToggleBtn" onclick="toggleMode()">
+                    Mode: @(difficulty == "Easy" ? "Easy (choices)" : "Hard (type)")
+                </button>
+            </div>
+        </div>
+
+        <div class="small text-warning text-center mb-3 d-none" id="hintTextContainer">
+            Hint: <span id="hintText" class="fw-bold"></span>
+        </div>
+
+        <!-- Mode A: Options Grid (Easy Mode) -->
+        <div class="options-grid" id="optionsContainer">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Mode B: Text Input Box (Hard Mode) -->
+        <div id="textInputContainer" class="d-none mt-3">
+            <textarea id="lyricInput" class="form-control form-control-lg text-center" rows="2" placeholder="Type the missing line..." style="background: #202532; border-color: rgba(255,255,255,0.2); color: #fff; resize: none;"></textarea>
+            <button class="btn btn-primary w-100 mt-2" onclick="submitTextInput()">Submit line ✔</button>
+        </div>
+
+        <!-- Round Feedback Banner -->
+        <div id="feedbackBanner" class="alert mt-4 d-none text-center">
+            <h5 id="feedbackTitle" class="fw-bold mb-1"></h5>
+            <p id="feedbackDetails" class="mb-3 text-muted"></p>
+            <button id="nextRoundBtn" class="btn btn-primary px-4" onclick="nextRound()">
+                Next round ▶
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverView" class="game-over-screen d-none">
+        <div class="game-over-trophy">📜</div>
+        <h2 class="fw-bold mb-2">Nice! You finished the lyrics!</h2>
+        <p class="text-muted">You completed the lyric quiz!</p>
+
+        <div class="card p-3 my-4 mx-auto" style="max-width: 320px; background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Total score:</span>
+                <span class="fw-bold text-success fs-5" id="finalScoreVal">0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Lines guessed:</span>
+                <span class="fw-bold" id="finalCorrectVal">0 / 0</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Total time:</span>
+                <span class="fw-bold" id="finalTimeVal">0s</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-primary px-4" onclick="restartGame()">Play again 🔄</button>
+            <a asp-action="Index" class="btn btn-outline-light px-4">Back to menu</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentMode = '@difficulty';
+        const artistIdParam = '@(artistId.HasValue ? artistId.Value.ToString() : "")';
+
+        let rounds = [];
+        let currentRoundIndex = 0;
+        let totalScore = 0;
+        let correctCount = 0;
+        let roundScore = 100;
+        let hintUsed = false;
+        let gameStartTime = Date.now();
+
+        async function initGame() {
+            try {
+                let url = `@Url.Action("GetLyricRounds", "Games")?difficulty=${currentMode}&count=5`;
+                if (artistIdParam) {
+                    url += '&artistId=' + artistIdParam;
+                }
+
+                const response = await fetch(url);
+                rounds = await response.json();
+
+                if (!rounds || rounds.length === 0) {
+                    alert('No lyric challenges were found.');
+                    window.location.href = '@Url.Action("Index", "Games")';
+                    return;
+                }
+
+                gameStartTime = Date.now();
+                currentRoundIndex = 0;
+                totalScore = 0;
+                correctCount = 0;
+
+                loadRound(currentRoundIndex);
+            } catch (err) {
+                console.error(err);
+                alert('Could not load the game.');
+            }
+        }
+
+        function loadRound(index) {
+            if (index >= rounds.length) {
+                endGame();
+                return;
+            }
+
+            const round = rounds[index];
+            roundScore = (currentMode === 'Hard') ? 125 : 100; // hard mode rewards 125 pts
+            hintUsed = false;
+
+            document.getElementById('roundIndicator').innerText = `Round ${index + 1} / ${rounds.length}`;
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+            document.getElementById('potentialScoreText').innerText = `Possible score: ${roundScore} pts`;
+            document.getElementById('feedbackBanner').classList.add('d-none');
+            document.getElementById('hintTextContainer').classList.add('d-none');
+
+            document.getElementById('trackArtistBadge').innerText = `🎵 ${round.artistName} - "${round.trackName}"`;
+
+            renderLyrics(round.lyricsBefore, null, false);
+
+            // Reset Hint Button
+            const hintBtn = document.getElementById('hintBtn');
+            hintBtn.disabled = !round.hint;
+            hintBtn.innerText = '💡 Hint (-25 pts)';
+
+            // Mode view setup
+            updateModeInterface(round);
+        }
+
+        function updateModeInterface(round) {
+            const optionsContainer = document.getElementById('optionsContainer');
+            const textInputContainer = document.getElementById('textInputContainer');
+            const diffBadge = document.getElementById('diffBadge');
+
+            if (currentMode === 'Easy') {
+                diffBadge.innerText = 'LEVEL: EASY (CHOICES)';
+                diffBadge.className = 'badge bg-success';
+                textInputContainer.classList.add('d-none');
+                optionsContainer.classList.remove('d-none');
+
+                optionsContainer.classList.add('lyric-options');
+                optionsContainer.innerHTML = '';
+                round.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn lyric-option';
+                    btn.dataset.answer = opt;
+
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-secondary me-2';
+                    badge.textContent = '✍️';
+
+                    const label = document.createElement('span');
+                    label.textContent = opt;
+
+                    btn.append(badge, label);
+                    btn.onclick = () => selectAnswer(btn, opt, round);
+                    optionsContainer.appendChild(btn);
+                });
+            } else {
+                diffBadge.innerText = 'LEVEL: HARD (TYPE)';
+                diffBadge.className = 'badge bg-danger';
+                optionsContainer.classList.add('d-none');
+                textInputContainer.classList.remove('d-none');
+
+                const input = document.getElementById('lyricInput');
+                input.value = '';
+                input.disabled = false;
+                setTimeout(() => input.focus(), 200);
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitTextInput();
+                    }
+                };
+            }
+        }
+
+        function toggleMode() {
+            currentMode = (currentMode === 'Easy') ? 'Hard' : 'Easy';
+            const toggleBtn = document.getElementById('modeToggleBtn');
+            toggleBtn.innerText = `Mode: ${currentMode === 'Easy' ? 'Easy (choices)' : 'Hard (type)'}`;
+
+            roundScore = (currentMode === 'Hard') ? 125 : 100;
+            if (hintUsed) roundScore = Math.max(25, roundScore - 25);
+            document.getElementById('potentialScoreText').innerText = `Possible score: ${roundScore} pts`;
+
+            const round = rounds[currentRoundIndex];
+            updateModeInterface(round);
+        }
+
+        function useLyricHint() {
+            if (hintUsed) return;
+            hintUsed = true;
+            roundScore = Math.max(25, roundScore - 25);
+            document.getElementById('potentialScoreText').innerText = `Possible score: ${roundScore} pts`;
+
+            const round = rounds[currentRoundIndex];
+            document.getElementById('hintText').innerText = round.hint || 'It rhymes with the line above!';
+            document.getElementById('hintTextContainer').classList.remove('d-none');
+
+            document.getElementById('hintBtn').disabled = true;
+            document.getElementById('hintBtn').innerText = 'Hint shown';
+        }
+
+        function submitTextInput() {
+            const input = document.getElementById('lyricInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            input.disabled = true;
+            selectAnswer(null, val, rounds[currentRoundIndex]);
+        }
+
+        function normalizeLyric(str) {
+            return (str || '')
+                .toLowerCase()
+                .replace(/['’]/g, '')
+                .replace(/[^a-z0-9]+/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function renderLyrics(before, ending, isCorrect) {
+            const display = document.getElementById('lyricsDisplay');
+            display.replaceChildren();
+
+            const quote = document.createElement('div');
+            quote.textContent = before;
+            display.appendChild(quote);
+
+            const endingLine = document.createElement('div');
+            endingLine.className = 'mt-3';
+
+            if (!ending) {
+                const blank = document.createElement('span');
+                blank.className = 'badge bg-secondary px-3 py-2';
+                blank.textContent = 'finish the line';
+                endingLine.appendChild(blank);
+            } else {
+                const answer = document.createElement('span');
+                answer.className = `badge ${isCorrect ? 'bg-success' : 'bg-danger'} px-3 py-2`;
+                answer.style.whiteSpace = 'normal';
+                answer.style.fontStyle = 'normal';
+                answer.textContent = ending;
+                endingLine.appendChild(answer);
+            }
+
+            display.appendChild(endingLine);
+        }
+
+        function selectAnswer(btnElement, selectedOption, round) {
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+            document.getElementById('hintBtn').disabled = true;
+
+            const isCorrect = normalizeLyric(selectedOption) === normalizeLyric(round.missingWord);
+            const feedbackBanner = document.getElementById('feedbackBanner');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackDetails = document.getElementById('feedbackDetails');
+
+            renderLyrics(round.lyricsBefore, round.missingWord, isCorrect);
+
+            if (isCorrect) {
+                if (btnElement) btnElement.classList.add('correct');
+                totalScore += roundScore;
+                correctCount++;
+                feedbackBanner.className = 'alert alert-success mt-4 text-center';
+                feedbackTitle.textContent = `🎉 Nailed it! +${roundScore} points`;
+            } else {
+                if (btnElement) btnElement.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (normalizeLyric(b.dataset.answer) === normalizeLyric(round.missingWord)) {
+                        b.classList.add('correct');
+                    }
+                });
+                feedbackBanner.className = 'alert alert-danger mt-4 text-center';
+                feedbackTitle.textContent = '';
+                feedbackTitle.append('❌ Wrong! The line was: ');
+                const strong = document.createElement('strong');
+                strong.textContent = round.missingWord;
+                feedbackTitle.appendChild(strong);
+            }
+
+            feedbackDetails.innerHTML = `Song: <strong>${round.trackName}</strong> • Artist: <em>${round.artistName}</em>`;
+            feedbackBanner.classList.remove('d-none');
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+        }
+
+        function nextRound() {
+            currentRoundIndex++;
+            loadRound(currentRoundIndex);
+        }
+
+        async function endGame() {
+            const totalDurationSec = Math.round((Date.now() - gameStartTime) / 1000);
+
+            document.getElementById('roundView').classList.add('d-none');
+            document.getElementById('gameOverView').classList.remove('d-none');
+
+            document.getElementById('finalScoreVal').innerText = `${totalScore} pts`;
+            document.getElementById('finalCorrectVal').innerText = `${correctCount} / ${rounds.length}`;
+            document.getElementById('finalTimeVal').innerText = `${totalDurationSec}s`;
+
+            try {
+                await fetch('@Url.Action("SubmitScore", "Games")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gameType: 'FinishLyric',
+                        score: totalScore,
+                        correctAnswers: correctCount,
+                        totalRounds: rounds.length,
+                        durationSeconds: totalDurationSec,
+                        targetArtistName: artistIdParam ? (rounds[0]?.artistName || null) : null
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to submit score', e);
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverView').classList.add('d-none');
+            document.getElementById('roundView').classList.remove('d-none');
+            initGame();
+        }
+
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+}
+

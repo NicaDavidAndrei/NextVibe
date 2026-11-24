@@ -1,0 +1,120 @@
+@using NextVibe.Models
+@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
+
+@{
+    bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+    bool isAdmin = User.IsInRole("Admin");
+
+    ApplicationUser? currentUser = null;
+
+    if (isAuthenticated)
+    {
+        currentUser = await UserManager.GetUserAsync(User);
+    }
+
+    var displayName = !string.IsNullOrWhiteSpace(currentUser?.FirstName)
+        ? currentUser.FirstName
+        : currentUser?.UserName;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - NextVibe</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/style.css" />
+    <link rel="stylesheet" href="~/css/games.css" />
+</head>
+<body>
+
+    <header class="header">
+        <div class="container">
+
+            <div class="topbar">
+                <div class="brand">
+                    <img src="~/images/logo-icon.png" alt="NextVibe" class="brand-badge-img" style="height:38px;width:auto;display:block;" />
+                    <div class="brand-text">
+                        <div class="brand-name">NextVibe</div>
+                        <div class="brand-tagline">Discover artists you’ll actually like</div>
+                    </div>
+                </div>
+
+                <div class="search">
+                    <form asp-controller="Explore" asp-action="Index" method="get" class="d-flex align-items-center gap-2 m-0 w-100">
+                        <span class="search-label">Search</span>
+                        <input type="text" name="searchString" placeholder="Search artists..." />
+                    </form>
+                </div>
+
+                @if (!isAuthenticated)
+                {
+                    <a class="btn" asp-controller="Account" asp-action="Login">Log in</a>
+                    <a class="btn btn-primary nv-btn-primary" asp-controller="Account" asp-action="Register">Register</a>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="user-avatar">
+                            @(displayName != null ? displayName.Substring(0, 1).ToUpper() : "?")
+                        </div>
+
+                        <span class="user-greeting">
+                            Hello, @displayName
+                        </span>
+
+                        <a class="btn" asp-controller="Account" asp-action="Profile">
+                            My Account
+                        </a>
+
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn logout-btn">Log out</button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <nav class="nav">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+                <a asp-controller="Explore" asp-action="Index">Explore</a>
+                <a asp-controller="Genres" asp-action="Index">Genres</a>
+                <a asp-controller="Moods" asp-action="Index">Moods</a>
+                <a asp-controller="ArtistAlbums" asp-action="Index">Albums</a>
+                <a asp-controller="Games" asp-action="Index">Games 🎮</a>
+
+                @if (isAuthenticated)
+                {
+                    <a asp-controller="UserFavoriteArtists" asp-action="MyVibes">My Vibes</a>
+                    <a asp-controller="Recommendations" asp-action="Index">Recommendations</a>
+                }
+
+                @if (isAdmin)
+                {
+                    <a asp-controller="Admin" asp-action="Index">Admin Panel</a>
+                }
+            </nav>
+
+        </div>
+    </header>
+
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-row">
+            <div>© 2026 NextVibe. All rights reserved.</div>
+            <div class="footer-links">
+                <a asp-controller="Home" asp-action="Index">Home</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

@@ -1,0 +1,226 @@
+/* Setează dimensiunea de bază a fontului pentru toată pagina */
+html {
+    font-size: 14px;
+}
+
+/* Pe ecrane mai mari de 768px, crește fontul de bază la 16px */
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+/* Stilul general al paginii:
+   - elimină marginile implicite
+   - setează fontul principal
+   - pune fundal dark
+   - setează culoarea textului */
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #0f1115;
+    color: #e9ecf1;
+}
+
+/* Elimină linia de sub link-uri */
+a {
+    text-decoration: none;
+}
+
+/* Navbar personalizat:
+   - fundal închis
+   - linie subțire jos pentru separare */
+.nv-navbar {
+    background: rgba(15, 17, 21, 0.96);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+    /* Culoarea pentru logo și link-urile din navbar */
+    .nv-navbar .navbar-brand,
+    .nv-navbar .nav-link {
+        color: #e9ecf1 !important;
+    }
+
+        /* Culoarea link-urilor din navbar la hover */
+        .nv-navbar .nav-link:hover {
+            color: #6d5efc !important;
+        }
+
+/* Face zona principală suficient de înaltă,
+   astfel încât footer-ul să stea jos pe pagină */
+.nv-main {
+    min-height: calc(100vh - 140px);
+}
+
+/* Stil pentru footer:
+   - linie sus
+   - culoare text mai deschisă
+   - spațiere verticală
+   - fundal dark */
+.nv-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #a9b0bd;
+    padding: 18px 0;
+    background: #0f1115;
+}
+
+/* Spațiere pentru secțiunea principală din home */
+.nv-home-hero {
+    padding: 24px 0 12px;
+}
+
+/* Badge-ul mic din home:
+   - afișare inline
+   - padding
+   - colțuri rotunjite
+   - fundal mov transparent
+   - text mov deschis */
+.nv-badge {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(109, 94, 252, 0.15);
+    color: #bdb5ff;
+    font-size: 0.9rem;
+    margin-bottom: 18px;
+}
+
+/* Titlul principal mare din home */
+.nv-title {
+    font-size: 3rem;
+    line-height: 1.1;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+/* Subtitlul de sub titlu:
+   - font puțin mai mare
+   - culoare mai soft
+   - lățime maximă pentru lizibilitate */
+.nv-subtitle {
+    font-size: 1.05rem;
+    color: #a9b0bd;
+    max-width: 800px;
+}
+
+/* Cardurile din home:
+   - fundal dark
+   - border discret
+   - colțuri rotunjite
+   - padding interior
+   - înălțime egală
+   - umbră */
+.nv-card {
+    background: #171a21;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px;
+    height: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
+    /* Stil pentru titlurile din carduri */
+    .nv-card h3 {
+        margin-bottom: 12px;
+        color: #e9ecf1;
+    }
+
+    /* Stil pentru textul descriptiv din carduri */
+    .nv-card p {
+        color: #a9b0bd;
+        margin-bottom: 18px;
+    }
+
+/* Butonul principal custom:
+   - fundal mov
+   - text alb
+   - fără border
+   - colțuri rotunjite
+   - padding și font mai bold */
+.nv-btn-primary {
+    background: #6d5efc;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight: 600;
+}
+
+    /* Efect hover pentru butonul principal */
+    .nv-btn-primary:hover {
+        background: #5b4cf0;
+        color: white;
+    }
+
+/* Stil general pentru tabele:
+   - text alb/gri deschis
+   - border discret */
+.table {
+    color: #e9ecf1;
+    border-color: rgba(255,255,255,0.08);
+}
+
+    /* Stil pentru celulele și headerele tabelului:
+   - border discret
+   - aliniere verticală pe mijloc */
+    .table th,
+    .table td {
+        border-color: rgba(255,255,255,0.08) !important;
+        vertical-align: middle;
+    }
+
+/* Culoare pentru heading-uri */
+h1, h2, h3, h4 {
+    color: #e9ecf1;
+}
+
+/* Stil pentru input-uri și select-uri:
+   - fundal dark
+   - text deschis
+   - border discret */
+.form-control,
+.form-select {
+    background: #171a21;
+    color: #e9ecf1;
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+    /* Stil când input-ul/select-ul este focusat:
+   - border mov
+   - glow mov discret */
+    .form-control:focus,
+    .form-select:focus {
+        background: #171a21;
+        color: #e9ecf1;
+        border-color: #6d5efc;
+        box-shadow: 0 0 0 0.2rem rgba(109, 94, 252, 0.18);
+    }
+
+/* Stil pentru butoanele bootstrap primary */
+.btn-primary {
+    background: #6d5efc;
+    border-color: #6d5efc;
+    border-radius: 10px;
+}
+
+    /* Hover pentru butoanele primary */
+    .btn-primary:hover {
+        background: #5b4cf0;
+        border-color: #5b4cf0;
+    }
+
+/* Rotunjire pentru butoanele danger și secondary */
+.btn-danger,
+.btn-secondary {
+    border-radius: 10px;
+}
+
+/* Stil pentru termenii din lista de detalii (Details page) */
+dl.row dt {
+    color: #bfc6d4;
+}
+
+/* Stil pentru valorile din lista de detalii */
+dl.row dd {
+    color: #e9ecf1;
+}

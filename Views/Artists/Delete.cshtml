@@ -1,0 +1,75 @@
+﻿@model NextVibe.Models.Artist
+
+@{
+    ViewData["Title"] = "Delete Artist";
+
+    var userType = Context.Request.Query["userType"].ToString();
+    if (string.IsNullOrWhiteSpace(userType))
+    {
+        userType = "Admin";
+    }
+}
+
+<div class="py-5">
+
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">Delete Artist</h1>
+        <p class="text-muted mb-0">
+            Confirm the deletion of this artist.
+        </p>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+            <div class="alert alert-danger mb-4">
+                Are you sure you want to delete this artist? This action cannot be undone.
+            </div>
+
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@Model.Name</dd>
+
+                <dt class="col-sm-3">Genre</dt>
+                <dd class="col-sm-9">@(Model.Genre?.Name ?? "Unknown")</dd>
+
+                <dt class="col-sm-3">Country</dt>
+                <dd class="col-sm-9">
+                    @(string.IsNullOrWhiteSpace(Model.Country) ? "Unknown" : Model.Country)
+                </dd>
+
+                <dt class="col-sm-3">Start Year</dt>
+                <dd class="col-sm-9">
+                    @(Model.BirthYear.HasValue? Model.BirthYear.ToString() : "Not provided")
+                </dd>
+
+                <dt class="col-sm-3">Image URL</dt>
+                <dd class="col-sm-9">
+                    @(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "Not provided" : Model.ImageUrl)
+                </dd>
+
+                <dt class="col-sm-3">Bio</dt>
+                <dd class="col-sm-9">
+                    @(string.IsNullOrWhiteSpace(Model.Bio) ? "No description available." : Model.Bio)
+                </dd>
+            </dl>
+
+            <form asp-action="Delete" method="post" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" name="userType" value="@userType" />
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-danger">
+                        Delete Artist
+                    </button>
+
+                    <a asp-action="Index"
+                           asp-route-userType="@userType"
+                           class="btn btn-outline-light">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>

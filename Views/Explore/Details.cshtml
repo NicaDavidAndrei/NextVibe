@@ -1,0 +1,272 @@
+﻿@model NextVibe.Models.Artist
+
+@{
+    ViewData["Title"] = "Artist Details";
+    bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+}
+
+<div class="py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Artist Details</h1>
+            <p class="text-muted mb-0">Learn more about this artist.</p>
+        </div>
+
+        <a asp-controller="Explore"
+               asp-action="Index"
+               class="btn btn-outline-light">
+            Back to Explore
+        </a>
+    </div>
+
+    <!-- ARTIST CARD -->
+    <div class="card bg-dark text-white border-secondary shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row g-4 align-items-start">
+
+                <div class="col-12 col-lg-4">
+                    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl"
+                             alt="@Model.Name"
+                             class="img-fluid rounded"
+                             style="width: 100%; max-height: 420px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded"
+                             style="height: 420px;">
+                            No Image
+                        </div>
+                    }
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h2 class="fw-bold mb-2">@Model.Name</h2>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge rounded-pill nv-pill">
+                                    @(Model.Genre?.Name ?? "Unknown Genre")
+                                </span>
+
+                                @if (Model.ArtistMoods != null && Model.ArtistMoods.Any())
+                                {
+                                    foreach (var artistMood in Model.ArtistMoods)
+                                    {
+                                        <span class="badge bg-secondary rounded-pill">
+                                            @(artistMood.Mood?.Name ?? "Mood")
+                                        </span>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            @if (!isAuthenticated)
+                            {
+                                <a asp-controller="Account"
+                                       asp-action="Login"
+                                       class="btn btn-primary nv-btn-primary">
+                                    Log in to add
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-controller="UserFavoriteArtists"
+                                       asp-action="Add"
+                                       asp-route-artistId="@Model.Id"
+                                       class="btn btn-primary nv-btn-primary">
+                                    Add to My Vibes
+                                </a>
+                            }
+
+                            <button type="button"
+                                    class="btn btn-outline-light"
+                                    onclick="copyArtistLink()">
+                                Share Artist
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="shareMessage"
+                         class="alert alert-success py-2 px-3 mb-3 d-none"
+                         role="alert">
+                        Artist link copied to clipboard!
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-4">
+                            <div class="card bg-black border-secondary h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Country</h6>
+                                    <p class="mb-0 fw-semibold">
+                                        @(string.IsNullOrWhiteSpace(Model.Country) ? "Unknown" : Model.Country)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <div class="card bg-black border-secondary h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Birth Year</h6>
+                                    <p class="mb-0 fw-semibold">
+                                        @(Model.BirthYear.HasValue ? Model.BirthYear.ToString() : "Not provided")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <div class="card bg-black border-secondary h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Genre</h6>
+                                    <p class="mb-0 fw-semibold">
+                                        @(Model.Genre?.Name ?? "Unknown")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-black border-secondary">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Biography</h5>
+                            <p class="text-muted mb-0">
+                                @(string.IsNullOrWhiteSpace(Model.Bio)
+                                    ? "No description available for this artist yet."
+                                    : Model.Bio)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- DISCOGRAPHY -->
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-3">Discography</h4>
+
+            @if (Model.Albums != null && Model.Albums.Any())
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var album in Model.Albums.OrderBy(a => a.ReleaseYear))
+                    {
+                        <div class="card bg-black text-white border-secondary shadow-sm">
+                            <div class="card-body p-4">
+
+                                <div class="d-flex flex-column flex-lg-row gap-4 align-items-start">
+
+                                    <!-- LEFT SIDE: cover + album info -->
+                                    <div class="d-flex gap-3 flex-grow-1">
+                                        @if (!string.IsNullOrWhiteSpace(album.CoverImageUrl))
+                                        {
+                                            <img src="@album.CoverImageUrl"
+                                                 alt="@album.Title"
+                                                 style="width: 120px; height: 120px; object-fit: cover; border-radius: 14px; flex-shrink: 0;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex align-items-center justify-content-center bg-secondary text-white"
+                                                 style="width: 120px; height: 120px; border-radius: 14px; flex-shrink: 0;">
+                                                No Cover
+                                            </div>
+                                        }
+
+                                        <div style="max-width: 520px;">
+                                            <h5 class="fw-bold mb-1">@album.Title</h5>
+
+                                            @if (album.ReleaseYear.HasValue)
+                                            {
+                                                <p class="text-muted small mb-2">
+                                                    Release Year: @album.ReleaseYear
+                                                </p>
+                                            }
+
+                                            <p class="text-muted mb-0">
+                                                @(string.IsNullOrWhiteSpace(album.Description)
+                                                    ? "No description available."
+                                                    : album.Description)
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- RIGHT SIDE: top tracks -->
+                                    <div class="ms-lg-auto" style="width: 380px; max-width: 100%;">
+                                        @if (album.Tracks != null && album.Tracks.Any(t => t.IsTopTrack))
+                                        {
+                                            <h6 class="fw-bold mb-2">Top Tracks</h6>
+
+                                            <div class="d-flex flex-column gap-2">
+                                                @foreach (var track in album.Tracks
+                                                    .Where(t => t.IsTopTrack)
+                                                    .OrderBy(t => t.TrackNumber)
+                                                    .Take(3))
+                                                {
+                                                    <div class="bg-dark border border-secondary rounded px-3 py-2">
+                                                        <span class="text-muted me-2">@track.TrackNumber.</span>
+                                                        <span>@track.Name</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted mb-3">
+                                                No top tracks selected.
+                                            </p>
+                                        }
+
+                                        <a asp-controller="ArtistAlbums"
+                                               asp-action="Details"
+                                               asp-route-id="@album.Id"
+                                               class="btn btn-outline-light btn-sm mt-3 w-100">
+                                            View Full Tracklist
+                                        </a>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">
+                    No albums added for this artist yet.
+                </p>
+            }
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        function copyArtistLink() {
+            navigator.clipboard.writeText(window.location.href)
+                .then(function () {
+                    const message = document.getElementById("shareMessage");
+
+                    if (message) {
+                        message.classList.remove("d-none");
+
+                        setTimeout(function () {
+                            message.classList.add("d-none");
+                        }, 2000);
+                    }
+                })
+                .catch(function () {
+                    alert("Could not copy the artist link.");
+                });
+        }
+    </script>
+}

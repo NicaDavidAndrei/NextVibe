@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="NextVibe.csproj" />
+  <Project Path="NextVibe.Tests/NextVibe.Tests.csproj" />
+</Solution>

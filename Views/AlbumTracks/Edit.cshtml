@@ -1,0 +1,100 @@
+﻿@model NextVibe.Models.AlbumTrack
+
+@{
+    ViewData["Title"] = "Edit Track";
+}
+
+<div class="py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Edit Track</h1>
+            <p class="text-muted mb-0">
+                Update track information, duration and top track status.
+            </p>
+        </div>
+
+        <a asp-action="Index" class="btn btn-outline-light">
+            Back to Tracks
+        </a>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <input type="hidden" asp-for="Id" />
+
+                <div class="row g-3">
+
+                    <div class="col-12 col-lg-6">
+                        <label asp-for="ArtistAlbumId" class="form-label">Album</label>
+                        <select asp-for="ArtistAlbumId"
+                                class="form-select bg-black text-white border-secondary"
+                                asp-items="ViewBag.ArtistAlbumId">
+                        </select>
+                        <span asp-validation-for="ArtistAlbumId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-lg-6">
+                        <label asp-for="Name" class="form-label">Track Name</label>
+                        <input asp-for="Name"
+                               class="form-control bg-black text-white border-secondary" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="TrackNumber" class="form-label">Track Number</label>
+                        <input asp-for="TrackNumber"
+                               class="form-control bg-black text-white border-secondary" />
+                        <span asp-validation-for="TrackNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="DurationSeconds" class="form-label">Duration Seconds</label>
+                        <input asp-for="DurationSeconds"
+                               class="form-control bg-black text-white border-secondary" />
+                        <span asp-validation-for="DurationSeconds" class="text-danger small"></span>
+
+                        <div class="form-text text-muted">
+                            Write the duration in seconds. Example: 3:45 = 225 seconds.
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input"
+                                   asp-for="IsTopTrack" />
+
+                            <label class="form-check-label" asp-for="IsTopTrack">
+                                Mark as Top Track
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="d-flex gap-2 mt-4 flex-wrap">
+                    <button type="submit" class="btn btn-primary nv-btn-primary">
+                        Save Changes
+                    </button>
+
+                    <a asp-action="Index" class="btn btn-outline-light">
+                        Cancel
+                    </a>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

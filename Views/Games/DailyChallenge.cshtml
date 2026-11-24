@@ -1,0 +1,448 @@
+@{
+    ViewData["Title"] = "Daily Challenge - NextVibe Games";
+    bool alreadyPlayed = (ViewBag.AlreadyPlayed as bool?) ?? false;
+    string todayFormatted = DateTime.UtcNow.ToString("dd MMMM yyyy");
+}
+
+<div class="arena-container" id="dailyArena">
+    <!-- Header -->
+    <div class="arena-header">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">← Menu</a>
+            <span class="arena-round" id="roundIndicator">📅 Daily challenge: @todayFormatted</span>
+        </div>
+        <div class="arena-score" id="scoreIndicator">0 pts</div>
+    </div>
+
+    @if (alreadyPlayed)
+    {
+        <!-- Already Played Screen -->
+        <div class="text-center py-5">
+            <div style="font-size: 3.5rem;" class="mb-3">✅</div>
+            <h3 class="fw-bold mb-2">You already finished today's Daily Challenge!</h3>
+            <p class="text-muted" style="max-width: 480px; margin: 0 auto 24px;">
+                Each player gets one attempt per day, so the daily leaderboard stays fair.
+            </p>
+
+            <div class="card p-3 my-3 mx-auto" style="max-width: 320px; background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+                <span class="text-muted small">The next challenge starts at midnight (UTC)</span>
+                <span class="fw-bold text-warning fs-5 mt-1" id="countdownTimer">--:--:--</span>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <a asp-action="Leaderboard" asp-route-gameType="DailyChallenge" class="btn btn-primary px-4">
+                    See today's leaderboard 🏅
+                </a>
+                <a asp-action="Index" class="btn btn-outline-light px-4">Back to games</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Active Daily Game View -->
+        <div id="roundView">
+            <div class="audio-widget">
+                <div class="vinyl-disc" id="vinylDisc">
+                    <div class="vinyl-center"></div>
+                </div>
+
+                <!-- Segmented snippet duration bar -->
+                <div class="w-100 px-3 mt-2" style="max-width: 480px;">
+                    <div class="d-flex justify-content-between mb-1 small text-muted">
+                        <span>Snippet length: <strong class="text-white" id="currentStepText">0.1s</strong></span>
+                        <span id="stepProgressText">Step 1 / 6</span>
+                    </div>
+                    <div class="d-flex gap-1" id="snippetSegments">
+                        <div class="flex-grow-1 segment-bar" id="seg0" style="height: 8px; border-radius: 4px; background: #6d5efc;"></div>
+                        <div class="flex-grow-1 segment-bar" id="seg1" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                        <div class="flex-grow-1 segment-bar" id="seg2" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                        <div class="flex-grow-1 segment-bar" id="seg3" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                        <div class="flex-grow-1 segment-bar" id="seg4" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                        <div class="flex-grow-1 segment-bar" id="seg5" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button id="playBtn" class="btn btn-primary px-4 py-2" onclick="toggleAudio()">
+                        <span id="playIcon">▶</span> <span id="playText">Play snippet</span>
+                    </button>
+                    <button id="unlockNextBtn" class="btn btn-outline-warning" onclick="unlockNextSnippet()">
+                        ⏩ Extend to <span id="nextSnippetDur">0.5s</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hints Box -->
+            <div class="card p-3 mb-3" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <span class="small text-muted">💡 Hints (big penalty):</span>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-secondary" id="hintArtistBtn" onclick="useArtistHint()">
+                        🎤 Show artist (-35 pts)
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="hintAlbumBtn" onclick="useAlbumHint()">
+                        💿 Show album (-35 pts)
+                    </button>
+                </div>
+                <div class="mt-2 small text-light" id="revealedHintsText" style="min-height: 20px;"></div>
+            </div>
+
+            <!-- Options Grid -->
+            <div class="options-grid" id="optionsContainer">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Round Feedback Banner -->
+            <div id="feedbackBanner" class="alert mt-4 d-none text-center">
+                <h5 id="feedbackTitle" class="fw-bold mb-1"></h5>
+                <p id="feedbackDetails" class="mb-3 text-muted"></p>
+                <button id="nextRoundBtn" class="btn btn-primary px-4" onclick="nextRound()">
+                    Next round ▶
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverView" class="game-over-screen d-none">
+            <div class="game-over-trophy">🌟</div>
+            <h2 class="fw-bold mb-2">Daily challenge complete!</h2>
+            <p class="text-muted">Your score is on the daily leaderboard!</p>
+
+            <div class="card p-3 my-4 mx-auto" style="max-width: 320px; background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Score:</span>
+                    <span class="fw-bold text-success fs-5" id="finalScoreVal">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Accuracy:</span>
+                    <span class="fw-bold" id="finalCorrectVal">0 / 0</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Total time:</span>
+                    <span class="fw-bold" id="finalTimeVal">0s</span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a asp-action="Leaderboard" asp-route-gameType="DailyChallenge" class="btn btn-primary px-4">
+                    See today's leaderboard 🏅
+                </a>
+                <a asp-action="Index" class="btn btn-outline-light px-4">Back to menu</a>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        const alreadyPlayed = @(alreadyPlayed ? "true" : "false");
+
+        if (alreadyPlayed) {
+            function updateCountdown() {
+                const now = new Date();
+                const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+                const diff = midnight - now;
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const pad = (n) => String(n).padStart(2, '0');
+                const timerElem = document.getElementById('countdownTimer');
+                if (timerElem) {
+                    timerElem.innerText = `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+                }
+            }
+            setInterval(updateCountdown, 1000);
+            updateCountdown();
+        } else {
+            const snippetSteps = [
+                { sec: 0.1, score: 100, label: '0.1 seconds' },
+                { sec: 0.5, score: 85,  label: '0.5 seconds' },
+                { sec: 1.0, score: 70,  label: '1.0 second' },
+                { sec: 3.0, score: 55,  label: '3.0 seconds' },
+                { sec: 5.0, score: 40,  label: '5.0 seconds' },
+                { sec: 10.0, score: 25, label: '10.0 seconds' }
+            ];
+
+            let rounds = [];
+            let currentRoundIndex = 0;
+            let totalScore = 0;
+            let correctCount = 0;
+            let currentStepIndex = 0;
+            let baseStepScore = 100;
+            let penaltyPoints = 0;
+            let usedArtistHint = false;
+            let usedAlbumHint = false;
+            let audioPlayer = new Audio();
+            let audioTimeout = null;
+            let isAudioPlaying = false;
+            let gameStartTime = Date.now();
+
+            async function initDaily() {
+                try {
+                    const response = await fetch('@Url.Action("GetDailyRounds", "Games")');
+                    rounds = await response.json();
+
+                    if (!rounds || rounds.length === 0) {
+                        alert('Could not load the daily challenge.');
+                        window.location.href = '@Url.Action("Index", "Games")';
+                        return;
+                    }
+
+                    gameStartTime = Date.now();
+                    currentRoundIndex = 0;
+                    totalScore = 0;
+                    correctCount = 0;
+
+                    loadRound(currentRoundIndex);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            function loadRound(index) {
+                if (index >= rounds.length) {
+                    endDaily();
+                    return;
+                }
+
+                const round = rounds[index];
+                currentStepIndex = 0;
+                penaltyPoints = 0;
+                usedArtistHint = false;
+                usedAlbumHint = false;
+                baseStepScore = snippetSteps[0].score;
+
+                document.getElementById('roundIndicator').innerText = `Round ${index + 1} / ${rounds.length}`;
+                document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+                document.getElementById('feedbackBanner').classList.add('d-none');
+                document.getElementById('revealedHintsText').innerHTML = '';
+
+                const artistBtn = document.getElementById('hintArtistBtn');
+                artistBtn.disabled = false;
+                artistBtn.className = 'btn btn-sm btn-outline-secondary';
+                artistBtn.innerText = '🎤 Show artist (-35 pts)';
+
+                const albumBtn = document.getElementById('hintAlbumBtn');
+                albumBtn.disabled = false;
+                albumBtn.className = 'btn btn-sm btn-outline-secondary';
+                albumBtn.innerText = '💿 Show album (-35 pts)';
+
+                updateStepUi();
+
+                stopAudio();
+                audioPlayer.src = round.audioPreviewUrl;
+
+                const optionsContainer = document.getElementById('optionsContainer');
+                optionsContainer.innerHTML = '';
+
+                round.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerHTML = `<span class="badge bg-secondary me-2">▶</span> ${opt}`;
+                    btn.onclick = () => selectAnswer(btn, opt, round);
+                    optionsContainer.appendChild(btn);
+                });
+
+                setTimeout(() => playSnippet(), 500);
+            }
+
+            function updateStepUi() {
+                const step = snippetSteps[currentStepIndex];
+                baseStepScore = step.score;
+
+                document.getElementById('currentStepText').innerText = step.label;
+                document.getElementById('stepProgressText').innerText = `Step ${currentStepIndex + 1} / ${snippetSteps.length}`;
+
+                for (let i = 0; i < snippetSteps.length; i++) {
+                    const seg = document.getElementById('seg' + i);
+                    if (i <= currentStepIndex) {
+                        seg.style.background = '#6d5efc';
+                    } else {
+                        seg.style.background = '#2b3244';
+                    }
+                }
+
+                const unlockBtn = document.getElementById('unlockNextBtn');
+                if (currentStepIndex < snippetSteps.length - 1) {
+                    unlockBtn.disabled = false;
+                    const nextStep = snippetSteps[currentStepIndex + 1];
+                    document.getElementById('nextSnippetDur').innerText = `${nextStep.sec}s`;
+                } else {
+                    unlockBtn.disabled = true;
+                    unlockBtn.innerHTML = 'Max length (10s)';
+                }
+            }
+
+            function unlockNextSnippet() {
+                if (currentStepIndex < snippetSteps.length - 1) {
+                    currentStepIndex++;
+                    updateStepUi();
+                    playSnippet();
+                }
+            }
+
+            function toggleAudio() {
+                if (isAudioPlaying) stopAudio();
+                else playSnippet();
+            }
+
+            function playSnippet(full = false) {
+                audioPlayer.currentTime = 0;
+                const currentDur = snippetSteps[currentStepIndex].sec;
+
+                audioPlayer.play().then(() => {
+                    setAudioPlaying(true);
+                    clearTimeout(audioTimeout);
+
+                    if (!full) {
+                        audioTimeout = setTimeout(() => {
+                            stopAudio();
+                        }, Math.round(currentDur * 1000));
+                    }
+                }).catch(e => console.log('Audio autoplay prevented', e));
+            }
+
+            function stopAudio() {
+                clearTimeout(audioTimeout);
+                audioPlayer.pause();
+                setAudioPlaying(false);
+            }
+
+            function setAudioPlaying(playing) {
+                isAudioPlaying = playing;
+                const vinyl = document.getElementById('vinylDisc');
+                const playIcon = document.getElementById('playIcon');
+                const playText = document.getElementById('playText');
+
+                if (playing) {
+                    vinyl.classList.add('spinning');
+                    playIcon.innerText = '⏸';
+                    playText.innerText = 'Pause';
+                } else {
+                    vinyl.classList.remove('spinning');
+                    playIcon.innerText = '▶';
+                    playText.innerText = 'Play';
+                }
+            }
+
+            audioPlayer.onended = () => setAudioPlaying(false);
+
+            function useArtistHint() {
+                if (usedArtistHint) return;
+                usedArtistHint = true;
+                penaltyPoints += 35;
+
+                const round = rounds[currentRoundIndex];
+                const btn = document.getElementById('hintArtistBtn');
+                btn.disabled = true;
+                btn.className = 'btn btn-sm btn-warning';
+                btn.innerText = `🎤 Artist: ${round.artistName}`;
+
+                updateHintsText();
+                updateStepUi();
+            }
+
+            function useAlbumHint() {
+                if (usedAlbumHint) return;
+                usedAlbumHint = true;
+                penaltyPoints += 35;
+
+                const round = rounds[currentRoundIndex];
+                const btn = document.getElementById('hintAlbumBtn');
+                btn.disabled = true;
+                btn.className = 'btn btn-sm btn-warning';
+                btn.innerText = `💿 Album: ${round.albumTitle}`;
+
+                updateHintsText();
+                updateStepUi();
+            }
+
+            function updateHintsText() {
+                const round = rounds[currentRoundIndex];
+                let html = '';
+                if (usedArtistHint) html += `🎤 Artist: <strong class="text-warning">${round.artistName}</strong> `;
+                if (usedAlbumHint) html += `• 💿 Album: <strong class="text-warning">${round.albumTitle}</strong>`;
+                document.getElementById('revealedHintsText').innerHTML = html;
+            }
+
+            function selectAnswer(btnElement, selectedOption, round) {
+                const allBtns = document.querySelectorAll('.option-btn');
+                allBtns.forEach(b => b.disabled = true);
+                document.getElementById('unlockNextBtn').disabled = true;
+                document.getElementById('hintArtistBtn').disabled = true;
+                document.getElementById('hintAlbumBtn').disabled = true;
+
+                playSnippet(true);
+
+                const isCorrect = (selectedOption.toLowerCase().trim() === round.correctTitle.toLowerCase().trim());
+                const feedbackBanner = document.getElementById('feedbackBanner');
+                const feedbackTitle = document.getElementById('feedbackTitle');
+                const feedbackDetails = document.getElementById('feedbackDetails');
+
+                const earnedScore = Math.max(10, baseStepScore - penaltyPoints);
+
+                if (isCorrect) {
+                    btnElement.classList.add('correct');
+                    totalScore += earnedScore;
+                    correctCount++;
+                    feedbackBanner.className = 'alert alert-success mt-4 text-center';
+                    feedbackTitle.innerHTML = `🎉 Excellent! +${earnedScore} points`;
+                } else {
+                    btnElement.classList.add('wrong');
+                    allBtns.forEach(b => {
+                        if (b.innerText.includes(round.correctTitle)) {
+                            b.classList.add('correct');
+                        }
+                    });
+                    feedbackBanner.className = 'alert alert-danger mt-4 text-center';
+                    feedbackTitle.innerHTML = `❌ Wrong! The song was: <strong>${round.correctTitle}</strong>`;
+                }
+
+                feedbackDetails.innerHTML = `Artist: <strong>${round.artistName}</strong> • Album: <em>${round.albumTitle} (${round.releaseYear || 'N/A'})</em>`;
+                feedbackBanner.classList.remove('d-none');
+                document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+            }
+
+            function nextRound() {
+                stopAudio();
+                currentRoundIndex++;
+                loadRound(currentRoundIndex);
+            }
+
+            async function endDaily() {
+                stopAudio();
+                const totalDurationSec = Math.round((Date.now() - gameStartTime) / 1000);
+
+                document.getElementById('roundView').classList.add('d-none');
+                document.getElementById('gameOverView').classList.remove('d-none');
+
+                document.getElementById('finalScoreVal').innerText = `${totalScore} pts`;
+                document.getElementById('finalCorrectVal').innerText = `${correctCount} / ${rounds.length}`;
+                document.getElementById('finalTimeVal').innerText = `${totalDurationSec}s`;
+
+                try {
+                    await fetch('@Url.Action("SubmitScore", "Games")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            gameType: 'DailyChallenge',
+                            score: totalScore,
+                            correctAnswers: correctCount,
+                            totalRounds: rounds.length,
+                            durationSeconds: totalDurationSec,
+                            targetArtistName: 'Daily'
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to submit score', e);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', initDaily);
+        }
+    </script>
+}
+

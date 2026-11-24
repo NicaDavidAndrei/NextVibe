@@ -1,0 +1,53 @@
+## ASP.NET Core / Visual Studio / Antigravity .gitignore for NextVibe
+
+# Build outputs
+bin/
+obj/
+TestResults/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Antigravity / AI tooling
+.gemini/
+*.agy/
+
+# Logs
+logs/
+*.log
+
+# Local secrets and environment overrides
+# (appsettings.json and appsettings.Development.json are committed;
+#  they contain no hardcoded secrets in this project)
+.env
+.env.local
+secrets.json
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Publish output
+publish/
+**/publish/
+
+# OS artefacts
+Thumbs.db
+.DS_Store
+
+# Node (if added in future)
+node_modules/
+
+# Coverage reports
+coverage/
+*.coverage
+*.coveragexml

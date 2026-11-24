@@ -1,0 +1,752 @@
+@{
+    ViewData["Title"] = "Guess the Song - NextVibe Games";
+    var artistId = ViewBag.ArtistId as int?;
+}
+
+<div class="arena-container" id="gameArena">
+    <!-- Header -->
+    <div class="arena-header">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">← Menu</a>
+            <span class="arena-round" id="roundIndicator">Loading...</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="potentialScoreBadge">Max 100 pts</span>
+            <div class="arena-score" id="scoreIndicator">0 pts</div>
+        </div>
+    </div>
+
+    <!-- Active Round Container -->
+    <div id="roundView">
+        <div class="audio-widget">
+            <div class="vinyl-disc" id="vinylDisc">
+                <div class="vinyl-center"></div>
+            </div>
+
+            <!-- Segmented Snippet Bar (Heardle Style) -->
+            <div class="w-100 px-3 mt-2" style="max-width: 480px;">
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>Snippet length: <strong class="text-white" id="currentStepText">0.1s</strong></span>
+                    <span id="stepProgressText">Step 1 / 6</span>
+                </div>
+                <div class="d-flex gap-1" id="snippetSegments">
+                    <!-- 6 segments: 0.1s, 0.5s, 1.0s, 3.0s, 5.0s, 10.0s -->
+                    <div class="flex-grow-1 segment-bar" id="seg0" style="height: 8px; border-radius: 4px; background: #6d5efc;"></div>
+                    <div class="flex-grow-1 segment-bar" id="seg1" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                    <div class="flex-grow-1 segment-bar" id="seg2" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                    <div class="flex-grow-1 segment-bar" id="seg3" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                    <div class="flex-grow-1 segment-bar" id="seg4" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                    <div class="flex-grow-1 segment-bar" id="seg5" style="height: 8px; border-radius: 4px; background: #2b3244;"></div>
+                </div>
+            </div>
+
+            <!-- Play Controls -->
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <button id="playBtn" class="btn btn-primary px-4 py-2" onclick="toggleAudio()">
+                    <span id="playIcon">▶</span> <span id="playText">Play snippet</span>
+                </button>
+                <button id="unlockNextBtn" class="btn btn-outline-warning" onclick="manualUnlockNext()">
+                    ⏩ Extend to <span id="nextSnippetDur">0.5s</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hints Box (Artist & Album with heavy penalties) -->
+        <div class="card p-3 mb-3" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <span class="small text-muted">💡 Hints (big score penalty):</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-secondary" id="hintArtistBtn" onclick="useArtistHint()">
+                    🎤 Show artist (-35 pts)
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="hintAlbumBtn" onclick="useAlbumHint()">
+                    💿 Show album (-35 pts)
+                </button>
+            </div>
+            <div class="mt-2 small text-light" id="revealedHintsText" style="min-height: 20px;"></div>
+        </div>
+
+        <!-- Mode A: Multiple Choice Grid -->
+        <div id="choiceModeContainer">
+            <div class="options-grid" id="optionsContainer">
+                <!-- Dynamically populated with 4 buttons -->
+            </div>
+            <div class="small text-center text-muted mt-2">
+                ⚠️ In multiple choice, <strong>one wrong pick ends the round immediately!</strong>
+            </div>
+        </div>
+
+        <!-- Mode B: Type / Search Mode -->
+        <div id="typeModeContainer" class="d-none mt-3">
+            <div class="song-search-row">
+                <div class="song-search-field">
+                    <input type="text" id="songSearchInput"
+                           class="form-control form-control-lg"
+                           placeholder="Type a word from the title..."
+                           autocomplete="off"
+                           style="background: #202532; border-color: rgba(255,255,255,0.2); color: #fff;">
+                    <div id="autocompleteResults" class="autocomplete-results d-none"></div>
+                </div>
+                <button class="btn btn-outline-warning" id="skipStepBtn" onclick="skipStep()" title="I don't know — play a longer snippet">⏭ Skip snippet</button>
+                <button class="btn btn-outline-danger" onclick="skipSong()" title="Give up this song and move on">⏩ Skip song</button>
+            </div>
+            <div class="small text-center text-muted mt-2">
+                Pick a song from the list to submit. A wrong guess moves you to the next snippet.
+            </div>
+        </div>
+
+        <!-- Guesses Box (Heardle Style - Always displayed in Type mode or when guesses exist) -->
+        <div class="guesses-box" id="guessesBox">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-bold text-light">📋 Your guesses this round:</span>
+                <span class="small text-muted" id="guessesCountText">0 / 6 guesses</span>
+            </div>
+            <div id="guessesList">
+                <div class="guess-slot" id="slot0"><span>1. Step 0.1s</span><span>-</span></div>
+                <div class="guess-slot" id="slot1"><span>2. Step 0.5s</span><span>-</span></div>
+                <div class="guess-slot" id="slot2"><span>3. Step 1.0s</span><span>-</span></div>
+                <div class="guess-slot" id="slot3"><span>4. Step 3.0s</span><span>-</span></div>
+                <div class="guess-slot" id="slot4"><span>5. Step 5.0s</span><span>-</span></div>
+                <div class="guess-slot" id="slot5"><span>6. Step 10.0s</span><span>-</span></div>
+            </div>
+        </div>
+
+        <!-- Round Feedback Banner (Hidden initially) -->
+        <div id="feedbackBanner" class="alert mt-4 d-none text-center">
+            <h5 id="feedbackTitle" class="fw-bold mb-1"></h5>
+            <p id="feedbackDetails" class="mb-3 text-muted"></p>
+            <button id="nextRoundBtn" class="btn btn-primary px-4" onclick="nextRound()">
+                Next round ▶
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen (Hidden initially) -->
+    <div id="gameOverView" class="game-over-screen d-none">
+        <div class="game-over-trophy">🎉</div>
+        <h2 class="fw-bold mb-2">Game over!</h2>
+        <p class="text-muted">You finished the song quiz!</p>
+
+        <div class="card p-3 my-4 mx-auto" style="max-width: 320px; background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Total score:</span>
+                <span class="fw-bold text-success fs-5" id="finalScoreVal">0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Songs guessed:</span>
+                <span class="fw-bold" id="finalCorrectVal">0 / 0</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Total time:</span>
+                <span class="fw-bold" id="finalTimeVal">0s</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-primary px-4" onclick="restartGame()">Play again 🔄</button>
+            <a asp-action="Index" class="btn btn-outline-light px-4">Back to menu</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const artistIdParam = '@(artistId.HasValue ? artistId.Value.ToString() : "")';
+        // Input mode comes from the URL param set by the Index page (choice / type)
+        const initialInputMode = '@(ViewBag.InputMode ?? "choice")';
+
+        // 6 snippet progression steps: 0.1s, 0.5s, 1.0s, 3s, 5s, 10s
+        const snippetSteps = [
+            { sec: 0.1, score: 100, label: '0.1 seconds' },
+            { sec: 0.5, score: 85,  label: '0.5 seconds' },
+            { sec: 1.0, score: 70,  label: '1.0 second' },
+            { sec: 3.0, score: 55,  label: '3.0 seconds' },
+            { sec: 5.0, score: 40,  label: '5.0 seconds' },
+            { sec: 10.0, score: 25, label: '10.0 seconds' }
+        ];
+
+        let activeInputMode = 'choice'; // 'choice' or 'type'
+        let rounds = [];
+        let currentRoundIndex = 0;
+        let totalScore = 0;
+        let correctCount = 0;
+        let currentStepIndex = 0;
+        let baseStepScore = 100;
+        let penaltyPoints = 0;
+        let usedArtistHint = false;
+        let usedAlbumHint = false;
+        let roundEnded = false;
+        let guesses = []; // List of string attempts in current round
+        let audioPlayer = new Audio();
+        let audioTimeout = null;
+        let isAudioPlaying = false;
+        let gameStartTime = Date.now();
+
+        async function initGame() {
+            try {
+                let url = '@Url.Action("GetSongRounds", "Games")?count=5';
+                if (artistIdParam) {
+                    url += '&artistId=' + artistIdParam;
+                }
+
+                const response = await fetch(url);
+                rounds = await response.json();
+
+                if (!rounds || rounds.length === 0) {
+                    alert('Could not load songs with an audio preview for this selection. Try all artists.');
+                    window.location.href = '@Url.Action("Index", "Games")';
+                    return;
+                }
+
+                // Load all song titles for datalist autocomplete
+                loadSongDatelist();
+
+                gameStartTime = Date.now();
+                currentRoundIndex = 0;
+                totalScore = 0;
+                correctCount = 0;
+
+                loadRound(currentRoundIndex);
+            } catch (err) {
+                console.error(err);
+                alert('Could not load the game.');
+            }
+        }
+
+        async function loadSongDatelist() {
+            try {
+                let url = '@Url.Action("SearchSongs", "Games")';
+                if (artistIdParam) url += '?artistId=' + artistIdParam;
+                const res = await fetch(url);
+                window.autocompleteDate = await res.json();
+            } catch (e) {
+                console.log('Could not load autocomplete data', e);
+                window.autocompleteDate = [];
+            }
+        }
+
+        function titleMatchesQuery(title, query) {
+            const words = (title || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+            const parts = query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+            if (!parts.length || words.length < parts.length) return false;
+
+            for (let i = 0; i <= words.length - parts.length; i++) {
+                const matches = parts.every((part, j) => words[i + j].startsWith(part));
+                if (matches) return true;
+            }
+            return false;
+        }
+
+        function coverElement(item) {
+            if (item.coverImageUrl) {
+                const img = document.createElement('img');
+                img.src = item.coverImageUrl;
+                img.alt = item.albumTitle || item.title;
+                img.onerror = () => img.replaceWith(coverFallback());
+                return img;
+            }
+            return coverFallback();
+        }
+
+        function coverFallback() {
+            const fallback = document.createElement('span');
+            fallback.className = 'ac-cover-fallback';
+            fallback.textContent = '💿';
+            return fallback;
+        }
+
+        function hideAutocomplete() {
+            document.getElementById('autocompleteResults').classList.add('d-none');
+        }
+
+        function chooseSong(title) {
+            const input = document.getElementById('songSearchInput');
+            input.value = title;
+            hideAutocomplete();
+            submitTypedGuess();
+        }
+
+        function updateAutocomplete() {
+            const input = document.getElementById('songSearchInput');
+            const query = input.value.trim();
+            const resultsDiv = document.getElementById('autocompleteResults');
+            if (!window.autocompleteDate || query.length < 1 || input.disabled) {
+                resultsDiv.classList.add('d-none');
+                return;
+            }
+
+            const filtered = window.autocompleteDate
+                .filter(r => titleMatchesQuery(r.title, query))
+                .sort((a, b) => {
+                    const q = query.toLowerCase();
+                    const aStarts = a.title.toLowerCase().startsWith(q) ? 0 : 1;
+                    const bStarts = b.title.toLowerCase().startsWith(q) ? 0 : 1;
+                    return aStarts - bStarts || a.title.localeCompare(b.title);
+                })
+                .slice(0, 8);
+
+            resultsDiv.replaceChildren();
+            if (filtered.length === 0) {
+                resultsDiv.classList.add('d-none');
+                return;
+            }
+
+            filtered.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'autocomplete-item';
+                row.tabIndex = 0;
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'ac-text';
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'ac-title';
+                titleSpan.textContent = item.title;
+                const subSpan = document.createElement('span');
+                subSpan.className = 'ac-sub';
+                subSpan.textContent = item.artistName + (item.albumTitle ? ` · ${item.albumTitle}` : '');
+                textDiv.append(titleSpan, subSpan);
+
+                row.append(coverElement(item), textDiv);
+                row.onclick = () => chooseSong(item.title);
+                row.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        chooseSong(item.title);
+                    }
+                };
+                resultsDiv.appendChild(row);
+            });
+            resultsDiv.classList.remove('d-none');
+        }
+
+        function switchInputMode(mode) {
+            activeInputMode = mode;
+            // Toggle buttons are no longer in markup (mode is chosen before the game)
+            // but we still switch the containers
+            const choiceContainer = document.getElementById('choiceModeContainer');
+            const typeContainer = document.getElementById('typeModeContainer');
+
+            if (mode === 'choice') {
+                choiceContainer.classList.remove('d-none');
+                typeContainer.classList.add('d-none');
+            } else {
+                typeContainer.classList.remove('d-none');
+                choiceContainer.classList.add('d-none');
+            }
+        }
+
+        function loadRound(index) {
+            if (index >= rounds.length) {
+                endGame();
+                return;
+            }
+
+            const round = rounds[index];
+            currentStepIndex = 0;
+            penaltyPoints = 0;
+            usedArtistHint = false;
+            usedAlbumHint = false;
+            roundEnded = false;
+            guesses = [];
+            baseStepScore = snippetSteps[0].score;
+            resetGuessesBox();
+
+            document.getElementById('roundIndicator').innerText = `Round ${index + 1} / ${rounds.length}`;
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+            document.getElementById('feedbackBanner').classList.add('d-none');
+            document.getElementById('revealedHintsText').innerHTML = '';
+
+            const input = document.getElementById('songSearchInput');
+            input.value = '';
+            input.disabled = false;
+            hideAutocomplete();
+
+            // Reset Hint Buttons
+            const artistBtn = document.getElementById('hintArtistBtn');
+            artistBtn.disabled = false;
+            artistBtn.className = 'btn btn-sm btn-outline-secondary';
+            artistBtn.innerText = '🎤 Show artist (-35 pts)';
+
+            const albumBtn = document.getElementById('hintAlbumBtn');
+            albumBtn.disabled = false;
+            albumBtn.className = 'btn btn-sm btn-outline-secondary';
+            albumBtn.innerText = '💿 Show album (-35 pts)';
+
+            updateStepUi();
+
+            // Audio setup
+            stopAudio();
+            audioPlayer.src = round.audioPreviewUrl;
+
+            // Populate options for choice mode
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            round.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<span class="badge bg-secondary me-2">▶</span> ${opt}`;
+                btn.onclick = () => selectChoiceAnswer(btn, opt, round);
+                optionsContainer.appendChild(btn);
+            });
+
+            // Autoplay the snippet
+            setTimeout(() => {
+                playSnippet();
+            }, 500);
+        }
+
+        function resetGuessesBox() {
+            document.getElementById('guessesCountText').innerText = `0 / ${snippetSteps.length} guesses`;
+            for (let i = 0; i < snippetSteps.length; i++) {
+                const slot = document.getElementById('slot' + i);
+                slot.className = 'guess-slot';
+                slot.innerHTML = `<span>${i + 1}. Step ${snippetSteps[i].label}</span><span>-</span>`;
+            }
+        }
+
+        function updateStepUi() {
+            const step = snippetSteps[currentStepIndex];
+            baseStepScore = step.score;
+
+            const potential = Math.max(10, baseStepScore - penaltyPoints);
+            document.getElementById('potentialScoreBadge').innerText = `Max ${potential} pts`;
+            document.getElementById('currentStepText').innerText = step.label;
+            document.getElementById('stepProgressText').innerText = `Step ${currentStepIndex + 1} / ${snippetSteps.length}`;
+
+            for (let i = 0; i < snippetSteps.length; i++) {
+                const seg = document.getElementById('seg' + i);
+                if (i <= currentStepIndex) {
+                    seg.style.background = '#6d5efc';
+                } else {
+                    seg.style.background = '#2b3244';
+                }
+            }
+
+            const unlockBtn = document.getElementById('unlockNextBtn');
+            const skipStepBtn = document.getElementById('skipStepBtn');
+            if (currentStepIndex < snippetSteps.length - 1) {
+                const nextStep = snippetSteps[currentStepIndex + 1];
+                unlockBtn.disabled = false;
+                unlockBtn.textContent = `⏩ Extend to ${nextStep.sec}s`;
+                if (skipStepBtn) skipStepBtn.disabled = false;
+            } else {
+                unlockBtn.disabled = true;
+                unlockBtn.textContent = 'Max length (10s)';
+                if (skipStepBtn) skipStepBtn.disabled = true;
+            }
+        }
+
+        function manualUnlockNext() {
+            if (roundEnded) return;
+            if (currentStepIndex < snippetSteps.length - 1) {
+                // In type mode, manual unlock counts as skipped slot
+                recordGuessSlot(currentStepIndex, '⏭ Snippet extended', 'skipped');
+                currentStepIndex++;
+                updateStepUi();
+                playSnippet();
+            }
+        }
+
+        function skipStep() {
+            if (roundEnded) return;
+            manualUnlockNext();
+        }
+
+        function skipSong() {
+            if (roundEnded) return;
+            stopAudio();
+            roundEnded = true;
+
+            const round = rounds[currentRoundIndex];
+            const input = document.getElementById('songSearchInput');
+            input.disabled = true;
+            hideAutocomplete();
+            document.getElementById('unlockNextBtn').disabled = true;
+            document.getElementById('hintArtistBtn').disabled = true;
+            document.getElementById('hintAlbumBtn').disabled = true;
+            const skipStepBtn = document.getElementById('skipStepBtn');
+            if (skipStepBtn) skipStepBtn.disabled = true;
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+            recordGuessSlot(currentStepIndex, 'Song skipped', 'skipped');
+
+            const feedbackBanner = document.getElementById('feedbackBanner');
+            feedbackBanner.className = 'alert alert-warning mt-4 text-center';
+            document.getElementById('feedbackTitle').textContent = `⏩ You skipped this song. It was: ${round.correctTitle}`;
+            document.getElementById('feedbackDetails').textContent = `${round.artistName} • ${round.albumTitle} • 0 pts`;
+            feedbackBanner.classList.remove('d-none');
+        }
+
+        function toggleAudio() {
+            if (isAudioPlaying) {
+                stopAudio();
+            } else {
+                playSnippet();
+            }
+        }
+
+        function playSnippet(full = false) {
+            audioPlayer.currentTime = 0;
+            const currentDur = snippetSteps[currentStepIndex].sec;
+
+            audioPlayer.play().then(() => {
+                setAudioPlaying(true);
+                clearTimeout(audioTimeout);
+
+                if (!full) {
+                    audioTimeout = setTimeout(() => {
+                        stopAudio();
+                    }, Math.round(currentDur * 1000));
+                }
+            }).catch(e => console.log('Audio autoplay prevented or error', e));
+        }
+
+        function stopAudio() {
+            clearTimeout(audioTimeout);
+            audioPlayer.pause();
+            setAudioPlaying(false);
+        }
+
+        function setAudioPlaying(playing) {
+            isAudioPlaying = playing;
+            const vinyl = document.getElementById('vinylDisc');
+            const playIcon = document.getElementById('playIcon');
+            const playText = document.getElementById('playText');
+
+            if (playing) {
+                vinyl.classList.add('spinning');
+                playIcon.innerText = '⏸';
+                playText.innerText = 'Pause';
+            } else {
+                vinyl.classList.remove('spinning');
+                playIcon.innerText = '▶';
+                playText.innerText = 'Play';
+            }
+        }
+
+        audioPlayer.onended = () => {
+            setAudioPlaying(false);
+        };
+
+        function useArtistHint() {
+            if (usedArtistHint || roundEnded) return;
+            usedArtistHint = true;
+            penaltyPoints += 35;
+
+            const round = rounds[currentRoundIndex];
+            const btn = document.getElementById('hintArtistBtn');
+            btn.disabled = true;
+            btn.className = 'btn btn-sm btn-warning';
+            btn.innerText = `🎤 Artist: ${round.artistName}`;
+
+            updateHintsText();
+            updateStepUi();
+        }
+
+        function useAlbumHint() {
+            if (usedAlbumHint || roundEnded) return;
+            usedAlbumHint = true;
+            penaltyPoints += 35;
+
+            const round = rounds[currentRoundIndex];
+            const btn = document.getElementById('hintAlbumBtn');
+            btn.disabled = true;
+            btn.className = 'btn btn-sm btn-warning';
+            btn.innerText = `💿 Album: ${round.albumTitle} (${round.releaseYear || 'N/A'})`;
+
+            updateHintsText();
+            updateStepUi();
+        }
+
+        function updateHintsText() {
+            const round = rounds[currentRoundIndex];
+            let html = '';
+            if (usedArtistHint) html += `🎤 Artist: <strong class="text-warning">${round.artistName}</strong> `;
+            if (usedAlbumHint) html += `• 💿 Album: <strong class="text-warning">${round.albumTitle}</strong>`;
+            document.getElementById('revealedHintsText').innerHTML = html;
+        }
+
+        function cleanString(str) {
+            return (str || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+        }
+
+        // ================= MODE 1: MULTIPLE CHOICE =================
+        // One wrong choice ends the round.
+        function selectChoiceAnswer(btnElement, selectedOption, round) {
+            if (roundEnded) return;
+            roundEnded = true;
+
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+            document.getElementById('unlockNextBtn').disabled = true;
+            document.getElementById('hintArtistBtn').disabled = true;
+            document.getElementById('hintAlbumBtn').disabled = true;
+
+            playSnippet(true);
+
+            const isCorrect = (cleanString(selectedOption) === cleanString(round.correctTitle));
+            const feedbackBanner = document.getElementById('feedbackBanner');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackDetails = document.getElementById('feedbackDetails');
+
+            if (isCorrect) {
+                const earnedScore = Math.max(10, baseStepScore - penaltyPoints);
+                btnElement.classList.add('correct');
+                totalScore += earnedScore;
+                correctCount++;
+                recordGuessSlot(currentStepIndex, selectedOption, 'correct');
+
+                feedbackBanner.className = 'alert alert-success mt-4 text-center';
+                feedbackTitle.innerHTML = `🎉 Correct! +${earnedScore} points (at ${snippetSteps[currentStepIndex].label})`;
+            } else {
+                // Wrong choice ends the round immediately.
+                btnElement.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (cleanString(b.innerText).includes(cleanString(round.correctTitle))) {
+                        b.classList.add('correct');
+                    }
+                });
+                recordGuessSlot(currentStepIndex, selectedOption, 'wrong');
+
+                feedbackBanner.className = 'alert alert-danger mt-4 text-center';
+                feedbackTitle.innerHTML = `❌ Wrong guess. This round is over. The song was: <strong>${round.correctTitle}</strong> (0 pts)`;
+            }
+
+            feedbackDetails.innerHTML = `Artist: <strong>${round.artistName}</strong> • Album: <em>${round.albumTitle} (${round.releaseYear || 'N/A'})</em>`;
+            feedbackBanner.classList.remove('d-none');
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+        }
+
+        // ================= MODE 2: TYPE THE SONG =================
+        // A wrong guess moves to the next snippet length (for example 0.1s -> 0.5s).
+        function submitTypedGuess() {
+            if (roundEnded) return;
+
+            const input = document.getElementById('songSearchInput');
+            const typedVal = input.value.trim();
+            if (!typedVal) return;
+
+            const round = rounds[currentRoundIndex];
+            const isCorrect = (cleanString(typedVal) === cleanString(round.correctTitle));
+
+            if (isCorrect) {
+                // Correct.
+                roundEnded = true;
+                input.disabled = true;
+                document.getElementById('unlockNextBtn').disabled = true;
+                document.getElementById('hintArtistBtn').disabled = true;
+                document.getElementById('hintAlbumBtn').disabled = true;
+
+                playSnippet(true);
+
+                const earnedScore = Math.max(10, baseStepScore - penaltyPoints);
+                totalScore += earnedScore;
+                correctCount++;
+                recordGuessSlot(currentStepIndex, typedVal, 'correct');
+
+                const feedbackBanner = document.getElementById('feedbackBanner');
+                feedbackBanner.className = 'alert alert-success mt-4 text-center';
+                document.getElementById('feedbackTitle').innerHTML = `🎉 Nice! Guessed at ${snippetSteps[currentStepIndex].label}! +${earnedScore} points`;
+                document.getElementById('feedbackDetails').innerHTML = `Song: <strong>${round.correctTitle}</strong> • Artist: <em>${round.artistName}</em>`;
+                feedbackBanner.classList.remove('d-none');
+                document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+            } else {
+                // Wrong guess: record it and move to the next snippet.
+                recordGuessSlot(currentStepIndex, typedVal, 'wrong');
+                input.value = '';
+
+                if (currentStepIndex < snippetSteps.length - 1) {
+                    currentStepIndex++;
+                    updateStepUi();
+                    // Play the longer snippet.
+                    playSnippet();
+                } else {
+                    // All 6 guesses are used.
+                    roundEnded = true;
+                    input.disabled = true;
+                    document.getElementById('unlockNextBtn').disabled = true;
+                    playSnippet(true);
+
+                    const feedbackBanner = document.getElementById('feedbackBanner');
+                    feedbackBanner.className = 'alert alert-danger mt-4 text-center';
+                    document.getElementById('feedbackTitle').innerHTML = `❌ Out of guesses! The song was: <strong>${round.correctTitle}</strong> (0 pts)`;
+                    document.getElementById('feedbackDetails').innerHTML = `Artist: <strong>${round.artistName}</strong> • Album: <em>${round.albumTitle}</em>`;
+                    feedbackBanner.classList.remove('d-none');
+                }
+            }
+        }
+
+        function recordGuessSlot(stepIdx, text, status) {
+            const slot = document.getElementById('slot' + stepIdx);
+            if (!slot) return;
+
+            guesses.push(text);
+            document.getElementById('guessesCountText').innerText = `${guesses.length} / ${snippetSteps.length} guesses`;
+
+            slot.className = 'guess-slot ' + status;
+            const icon = (status === 'correct') ? '✔' : ((status === 'wrong') ? '❌' : '⏭');
+            slot.innerHTML = `<span>${icon} ${text}</span><span class="small">${snippetSteps[stepIdx].label}</span>`;
+        }
+
+        function nextRound() {
+            stopAudio();
+            currentRoundIndex++;
+            loadRound(currentRoundIndex);
+        }
+
+        async function endGame() {
+            stopAudio();
+            const totalDurationSec = Math.round((Date.now() - gameStartTime) / 1000);
+
+            document.getElementById('roundView').classList.add('d-none');
+            document.getElementById('gameOverView').classList.remove('d-none');
+
+            document.getElementById('finalScoreVal').innerText = `${totalScore} pts`;
+            document.getElementById('finalCorrectVal').innerText = `${correctCount} / ${rounds.length}`;
+            document.getElementById('finalTimeVal').innerText = `${totalDurationSec}s`;
+
+            try {
+                await fetch('@Url.Action("SubmitScore", "Games")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gameType: 'GuessSong',
+                        score: totalScore,
+                        correctAnswers: correctCount,
+                        totalRounds: rounds.length,
+                        durationSeconds: totalDurationSec,
+                        targetArtistName: artistIdParam ? (rounds[0]?.artistName || null) : null
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to submit score', e);
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverView').classList.add('d-none');
+            document.getElementById('roundView').classList.remove('d-none');
+            initGame();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchInputMode(initialInputMode);
+            initGame();
+
+            const input = document.getElementById('songSearchInput');
+            input.addEventListener('input', updateAutocomplete);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') e.preventDefault();
+            });
+
+            document.addEventListener('click', (e) => {
+                const resultsDiv = document.getElementById('autocompleteResults');
+                if (resultsDiv && !resultsDiv.contains(e.target) && e.target !== input) {
+                    resultsDiv.classList.add('d-none');
+                }
+            });
+        });
+    </script>
+}

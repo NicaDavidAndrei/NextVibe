@@ -1,0 +1,76 @@
+﻿@model NextVibe.Models.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-9 col-lg-6">
+
+            <div class="text-center mb-4">
+                <img src="~/images/logo-icon.png" alt="NextVibe" class="nv-badge-img mx-auto mb-3 d-block" style="height:56px;width:auto;" />
+                <h1 class="h3 fw-bold mb-1">Create your account</h1>
+                <p class="text-muted mb-0">Join NextVibe by building your vibe profile.</p>
+            </div>
+
+            <div class="card bg-dark text-white border-secondary shadow-sm">
+                <div class="card-body p-4">
+                    <form asp-action="Register" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control nv-input" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control nv-input" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control nv-input" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control nv-input" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label"></label>
+                                <input asp-for="ConfirmPassword" class="form-control nv-input" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 nv-btn-primary">
+                            Create account
+                        </button>
+
+                        <div class="text-center mt-3">
+                            <span class="text-muted">Already have an account?</span>
+                            <a asp-controller="Account" asp-action="Login">Log in</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

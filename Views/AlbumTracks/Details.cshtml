@@ -1,0 +1,104 @@
+﻿@model NextVibe.Models.AlbumTrack
+
+@{
+    ViewData["Title"] = "Track Details";
+
+    var minutes = Model.DurationSeconds / 60;
+    var seconds = Model.DurationSeconds % 60;
+    var duration = Model.DurationSeconds > 0
+        ? string.Format("{0}:{1:00}", minutes, seconds)
+        : "N/A";
+}
+
+<div class="py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Track Details</h1>
+            <p class="text-muted mb-0">
+                View complete information about this track.
+            </p>
+        </div>
+
+        <a asp-action="Index" class="btn btn-outline-light">
+            Back to Tracks
+        </a>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                <div>
+                    <h2 class="fw-bold mb-1">@Model.Name</h2>
+
+                    <p class="text-muted mb-0">
+                        @(Model.ArtistAlbum?.Artist?.Name ?? "Unknown Artist")
+                        •
+                        @(Model.ArtistAlbum?.Title ?? "Unknown Album")
+                    </p>
+                </div>
+
+                @if (Model.IsTopTrack)
+                {
+                    <span class="badge rounded-pill nv-pill">
+                        Top Track
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary rounded-pill">
+                        Normal Track
+                    </span>
+                }
+            </div>
+
+            <div class="row g-3">
+
+                <div class="col-12 col-md-4">
+                    <div class="card bg-black border-secondary h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Track Number</h6>
+                            <p class="fw-semibold mb-0">@Model.TrackNumber</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="card bg-black border-secondary h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Duration</h6>
+                            <p class="fw-semibold mb-0">@duration</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="card bg-black border-secondary h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Album</h6>
+                            <p class="fw-semibold mb-0">
+                                @(Model.ArtistAlbum?.Title ?? "Unknown Album")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="d-flex gap-2 mt-4 flex-wrap">
+                <a asp-action="Edit"
+                       asp-route-id="@Model.Id"
+                       class="btn btn-primary nv-btn-primary">
+                    Edit
+                </a>
+
+                <a asp-action="Index" class="btn btn-outline-light">
+                    Back to Tracks
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>

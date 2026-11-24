@@ -1,0 +1,418 @@
+@{
+    ViewData["Title"] = "Guess the Album - NextVibe Games";
+    var mode = (ViewBag.Mode as string) ?? "random";
+    var artistId = ViewBag.ArtistId as int?;
+}
+
+<div class="arena-container" id="albumArena">
+    <!-- Header -->
+    <div class="arena-header">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-2">← Menu</a>
+            <span class="arena-round" id="roundIndicator">Loading...</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge" id="modeBadge" style="background: rgba(109, 94, 252, 0.2); color: #c4b5fd; border: 1px solid rgba(109, 94, 252, 0.4);">
+                Mode: @mode.ToUpper()
+            </span>
+            <div class="arena-score" id="scoreIndicator">0 pts</div>
+        </div>
+    </div>
+
+    <!-- Active Round View -->
+    <div id="roundView">
+        <!-- Display Box: Blur or Color Palette -->
+        <div class="display-box" id="displayBox">
+            <!-- Blur Image Element -->
+            <img id="albumBlurImg" class="album-blur d-none" src="" alt="Album Cover Preview" />
+
+            <!-- Color Palette Element -->
+            <div id="paletteDisplay" class="palette-display d-none">
+                <div class="color-swatch" id="swatch1"></div>
+                <div class="color-swatch" id="swatch2"></div>
+                <div class="color-swatch" id="swatch3"></div>
+                <div class="color-swatch" id="swatch4"></div>
+            </div>
+        </div>
+
+        <!-- Level & Clue Controls -->
+        <div class="hint-bar mb-3">
+            <div>
+                <span class="fw-bold text-white" id="currentLevelText">Level 1 (100 pts)</span>
+                <span class="text-muted small ms-2" id="levelDescText"></span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-warning" id="nextLevelBtn" onclick="advanceLevel()">
+                    🔍 Reveal more
+                </button>
+                <button class="btn btn-sm btn-outline-danger" id="giveUpBtn" onclick="giveUpRound()">
+                    🏳️ Give up (0 pts)
+                </button>
+            </div>
+        </div>
+
+        <!-- Artist Hint Box (Artist is hidden initially!) -->
+        <div class="card p-2 mb-3 text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+            <div id="artistClueContainer">
+                <span class="text-muted small">Artist: </span>
+                <span class="fw-bold text-secondary" id="artistNameClue">❓ Unknown</span>
+                <button class="btn btn-sm btn-outline-info ms-2 py-0 px-2" id="revealArtistBtn" onclick="useArtistClue()">
+                    💡 Show artist (score drops to 15 pts max)
+                </button>
+            </div>
+        </div>
+
+        <!-- Options Grid -->
+        <div class="options-grid" id="optionsContainer">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Feedback Banner -->
+        <div id="feedbackBanner" class="alert mt-4 d-none text-center">
+            <h5 id="feedbackTitle" class="fw-bold mb-1"></h5>
+            <p id="feedbackDetails" class="mb-3 text-muted"></p>
+            <button id="nextRoundBtn" class="btn btn-primary px-4" onclick="nextRound()">
+                Next round ▶
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverView" class="game-over-screen d-none">
+        <div class="game-over-trophy">🏆</div>
+        <h2 class="fw-bold mb-2">Nice work!</h2>
+        <p class="text-muted">You finished the album quiz!</p>
+
+        <div class="card p-3 my-4 mx-auto" style="max-width: 320px; background: #0f1115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Total score:</span>
+                <span class="fw-bold text-success fs-5" id="finalScoreVal">0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Albums guessed:</span>
+                <span class="fw-bold" id="finalCorrectVal">0 / 0</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Total time:</span>
+                <span class="fw-bold" id="finalTimeVal">0s</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-primary px-4" onclick="restartGame()">Play again 🔄</button>
+            <a asp-action="Index" class="btn btn-outline-light px-4">Back to menu</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const initialMode = '@mode';
+        const artistIdParam = '@(artistId.HasValue ? artistId.Value.ToString() : "")';
+
+        // Exactly 3 levels for blur mode:
+        // Level 1: 26px (100 pts)
+        // Level 2: 14px (60 pts)
+        // Level 3: 6px (30 pts)
+        // Level 4 (full unblur) removed from scoring!
+        const blurLevels = [
+            { level: 1, blur: '26px', score: 100, label: 'Level 1 (100 pts) - Heavy blur' },
+            { level: 2, blur: '14px', score: 60,  label: 'Level 2 (60 pts) - Medium blur' },
+            { level: 3, blur: '6px',  score: 30,  label: 'Level 3 (30 pts) - Light blur' }
+        ];
+
+        const colorLevels = [
+            { level: 1, shownCount: 1, score: 100, label: 'Level 1 (100 pts) - 1 color' },
+            { level: 2, shownCount: 2, score: 60,  label: 'Level 2 (60 pts) - 2 colors' },
+            { level: 3, shownCount: 4, score: 30,  label: 'Level 3 (30 pts) - Full palette' }
+        ];
+
+        let rounds = [];
+        let currentRoundIndex = 0;
+        let totalScore = 0;
+        let correctCount = 0;
+        let currentLevel = 1;
+        let currentScorePotential = 100;
+        let usedArtistClue = false;
+        let gameStartTime = Date.now();
+
+        async function initGame() {
+            try {
+                let url = `@Url.Action("GetAlbumRounds", "Games")?mode=${initialMode}&count=5`;
+                if (artistIdParam) {
+                    url += '&artistId=' + artistIdParam;
+                }
+
+                const response = await fetch(url);
+                rounds = await response.json();
+
+                if (!rounds || rounds.length === 0) {
+                    alert('Could not load albums for this selection.');
+                    window.location.href = '@Url.Action("Index", "Games")';
+                    return;
+                }
+
+                gameStartTime = Date.now();
+                currentRoundIndex = 0;
+                totalScore = 0;
+                correctCount = 0;
+
+                loadRound(currentRoundIndex);
+            } catch (err) {
+                console.error(err);
+                alert('Could not load the game.');
+            }
+        }
+
+        function loadRound(index) {
+            if (index >= rounds.length) {
+                endGame();
+                return;
+            }
+
+            const round = rounds[index];
+            currentLevel = 1;
+            usedArtistClue = false;
+            currentScorePotential = 100;
+
+            document.getElementById('roundIndicator').innerText = `Round ${index + 1} / ${rounds.length}`;
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+            document.getElementById('feedbackBanner').classList.add('d-none');
+
+            // Reset artist clue
+            document.getElementById('artistNameClue').innerText = '❓ Unknown';
+            document.getElementById('artistNameClue').className = 'fw-bold text-secondary';
+            const revealBtn = document.getElementById('revealArtistBtn');
+            revealBtn.disabled = false;
+            revealBtn.classList.remove('d-none');
+            revealBtn.innerText = '💡 Show artist (score drops to 15 pts max)';
+
+            const modeBadge = document.getElementById('modeBadge');
+            const blurImg = document.getElementById('albumBlurImg');
+            const paletteDiv = document.getElementById('paletteDisplay');
+
+            if (round.mode === 'blur') {
+                modeBadge.innerText = '🌫️ MODE: BLUR';
+                modeBadge.className = 'badge bg-primary';
+
+                paletteDiv.classList.add('d-none');
+                showBlurredCover(blurImg, round.coverImageUrl);
+                applyBlurLevel(1);
+            } else {
+                modeBadge.innerText = '🎨 MODE: COLOR';
+                modeBadge.className = 'badge bg-warning text-dark';
+
+                blurImg.classList.add('d-none');
+                paletteDiv.classList.remove('d-none');
+                applyColorLevel(1, round.dominantColors);
+            }
+
+            document.getElementById('nextLevelBtn').disabled = false;
+            document.getElementById('nextLevelBtn').innerText = (round.mode === 'blur') ? '🔍 Reveal more' : '🎨 More colors';
+            document.getElementById('giveUpBtn').disabled = false;
+
+            // Populate options
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            round.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<span class="badge bg-secondary me-2">💿</span> ${opt}`;
+                btn.onclick = () => selectAnswer(btn, opt, round);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function showBlurredCover(blurImg, url) {
+            const firstBlur = blurLevels[0].blur;
+            blurImg.classList.add('no-blur-transition');
+            blurImg.style.filter = `blur(${firstBlur})`;
+            blurImg.style.transform = 'scale(1.06)';
+            blurImg.style.opacity = '0';
+
+            const reveal = () => {
+                blurImg.style.opacity = '1';
+            };
+            blurImg.onload = reveal;
+            blurImg.src = url || '';
+            if (blurImg.complete) reveal();
+            blurImg.classList.remove('d-none');
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => blurImg.classList.remove('no-blur-transition'));
+            });
+        }
+
+        function applyBlurLevel(lvl) {
+            const config = blurLevels.find(b => b.level === lvl) || blurLevels[0];
+            const blurImg = document.getElementById('albumBlurImg');
+            blurImg.style.filter = `blur(${config.blur})`;
+            blurImg.style.transform = 'scale(1.06)';
+
+            if (!usedArtistClue) {
+                currentScorePotential = config.score;
+            }
+            document.getElementById('currentLevelText').innerText = `Level ${config.level} (${currentScorePotential} pts)`;
+            document.getElementById('levelDescText').innerText = config.label;
+
+            if (lvl >= 3) {
+                document.getElementById('nextLevelBtn').disabled = true;
+                document.getElementById('nextLevelBtn').innerText = 'Clearest (level 3)';
+            }
+        }
+
+        function applyColorLevel(lvl, colors) {
+            const config = colorLevels.find(c => c.level === lvl) || colorLevels[0];
+            if (!usedArtistClue) {
+                currentScorePotential = config.score;
+            }
+
+            document.getElementById('currentLevelText').innerText = `Level ${config.level} (${currentScorePotential} pts)`;
+            document.getElementById('levelDescText').innerText = config.label;
+
+            // Update swatches
+            for (let i = 1; i <= 4; i++) {
+                const swatch = document.getElementById('swatch' + i);
+                if (i <= config.shownCount && colors && colors[i - 1]) {
+                    swatch.classList.remove('hidden-swatch');
+                    swatch.style.backgroundColor = colors[i - 1];
+                    swatch.innerText = colors[i - 1];
+                } else {
+                    swatch.classList.add('hidden-swatch');
+                    swatch.style.backgroundColor = '';
+                    swatch.innerText = '';
+                }
+            }
+
+            if (lvl >= 3) {
+                document.getElementById('nextLevelBtn').disabled = true;
+                document.getElementById('nextLevelBtn').innerText = 'Full palette (level 3)';
+            }
+        }
+
+        function advanceLevel() {
+            if (currentLevel >= 3) return;
+            currentLevel++;
+
+            const round = rounds[currentRoundIndex];
+            if (round.mode === 'blur') {
+                applyBlurLevel(currentLevel);
+            } else {
+                applyColorLevel(currentLevel, round.dominantColors);
+            }
+        }
+
+        function useArtistClue() {
+            if (usedArtistClue) return;
+            usedArtistClue = true;
+            currentScorePotential = 15; // heavy penalty: max 15 points!
+
+            const round = rounds[currentRoundIndex];
+            document.getElementById('artistNameClue').innerText = round.artistName;
+            document.getElementById('artistNameClue').className = 'fw-bold text-warning';
+
+            const btn = document.getElementById('revealArtistBtn');
+            btn.disabled = true;
+            btn.classList.add('d-none');
+
+            document.getElementById('currentLevelText').innerText = `Hint used (${currentScorePotential} pts)`;
+        }
+
+        function giveUpRound() {
+            const round = rounds[currentRoundIndex];
+            currentScorePotential = 0;
+            selectAnswer(null, '', round);
+        }
+
+        function selectAnswer(btnElement, selectedOption, round) {
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+            document.getElementById('nextLevelBtn').disabled = true;
+            document.getElementById('giveUpBtn').disabled = true;
+            document.getElementById('revealArtistBtn').disabled = true;
+
+            // Reveal original cover clearly
+            const blurImg = document.getElementById('albumBlurImg');
+            const paletteDiv = document.getElementById('paletteDisplay');
+
+            paletteDiv.classList.add('d-none');
+            blurImg.classList.remove('d-none');
+            blurImg.style.opacity = '1';
+            blurImg.src = round.coverImageUrl;
+            blurImg.style.filter = 'blur(0px)';
+            blurImg.style.transform = 'scale(1.0)';
+
+            // Reveal artist name
+            document.getElementById('artistNameClue').innerText = round.artistName;
+            document.getElementById('artistNameClue').className = 'fw-bold text-success';
+
+            const isCorrect = (selectedOption.toLowerCase().trim() === round.correctTitle.toLowerCase().trim());
+            const feedbackBanner = document.getElementById('feedbackBanner');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackDetails = document.getElementById('feedbackDetails');
+
+            if (isCorrect) {
+                if (btnElement) btnElement.classList.add('correct');
+                totalScore += currentScorePotential;
+                correctCount++;
+                feedbackBanner.className = 'alert alert-success mt-4 text-center';
+                feedbackTitle.innerHTML = `🎉 Correct! +${currentScorePotential} points`;
+            } else {
+                if (btnElement) btnElement.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (b.innerText.includes(round.correctTitle)) {
+                        b.classList.add('correct');
+                    }
+                });
+                feedbackBanner.className = 'alert alert-danger mt-4 text-center';
+                feedbackTitle.innerHTML = `❌ Wrong answer! The album was: <strong>${round.correctTitle}</strong> (+0 pts)`;
+            }
+
+            feedbackDetails.innerHTML = `Artist: <strong>${round.artistName}</strong> • Year: <em>${round.releaseYear || 'N/A'}</em>`;
+            feedbackBanner.classList.remove('d-none');
+            document.getElementById('scoreIndicator').innerText = `${totalScore} pts`;
+        }
+
+        function nextRound() {
+            currentRoundIndex++;
+            loadRound(currentRoundIndex);
+        }
+
+        async function endGame() {
+            const totalDurationSec = Math.round((Date.now() - gameStartTime) / 1000);
+
+            document.getElementById('roundView').classList.add('d-none');
+            document.getElementById('gameOverView').classList.remove('d-none');
+
+            document.getElementById('finalScoreVal').innerText = `${totalScore} pts`;
+            document.getElementById('finalCorrectVal').innerText = `${correctCount} / ${rounds.length}`;
+            document.getElementById('finalTimeVal').innerText = `${totalDurationSec}s`;
+
+            try {
+                await fetch('@Url.Action("SubmitScore", "Games")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gameType: 'GuessAlbum' + initialMode.charAt(0).toUpperCase() + initialMode.slice(1),
+                        score: totalScore,
+                        correctAnswers: correctCount,
+                        totalRounds: rounds.length,
+                        durationSeconds: totalDurationSec,
+                        targetArtistName: artistIdParam ? (rounds[0]?.artistName || null) : null
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to submit score', e);
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverView').classList.add('d-none');
+            document.getElementById('roundView').classList.remove('d-none');
+            initGame();
+        }
+
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+}

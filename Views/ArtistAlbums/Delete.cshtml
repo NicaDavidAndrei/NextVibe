@@ -1,0 +1,31 @@
+﻿@model NextVibe.Models.ArtistAlbum
+
+@{
+    ViewData["Title"] = "Delete Album";
+}
+
+<div class="py-5">
+
+    <h1 class="h3 fw-bold mb-4 text-danger">Delete Album</h1>
+
+    <div class="card bg-dark text-white border-danger shadow-sm">
+        <div class="card-body p-4">
+
+            <p>Are you sure you want to delete:</p>
+
+            <h5 class="fw-bold">@Model.Title</h5>
+            <p class="text-muted">@Model.Artist?.Name • @Model.ReleaseYear</p>
+
+            <form asp-action="Delete">
+                <input type="hidden" asp-for="Id" />
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <a asp-action="Index" class="btn btn-outline-light">Cancel</a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+</div>

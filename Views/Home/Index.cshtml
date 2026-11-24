@@ -1,0 +1,94 @@
+﻿@model IEnumerable<NextVibe.Models.Artist>
+
+@{
+    ViewData["Title"] = "Home";
+    bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+}
+
+<section class="hero">
+    <div class="hero-grid">
+        <div class="card hero-card text-center">
+            <h1>Pick your vibe. Discover new artists.</h1>
+
+            <p class="muted">
+                Choose favorite artists, explore genres, and get personalized recommendations based on your music taste.
+            </p>
+
+            <div class="cta">
+                <a class="btn btn-primary"
+                       asp-controller="Explore"
+                       asp-action="Index">
+                    Start Exploring
+                </a>
+
+                @if (isAuthenticated)
+                {
+                    <a class="btn"
+                           asp-controller="Recommendations"
+                           asp-action="Index">
+                        View Recommendations
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-head">
+        <h2>Trending artists</h2>
+        <a class="link"
+               asp-controller="Explore"
+               asp-action="Index">
+            View all →
+        </a>
+    </div>
+
+    <div class="grid trending-grid">
+        @foreach (var artist in Model)
+        {
+            <div class="artist-card">
+                @if (!string.IsNullOrWhiteSpace(artist.ImageUrl))
+                {
+                    <div class="artist-cover" style="background-image: url('@artist.ImageUrl');"></div>
+                }
+                else
+                {
+                    <div class="artist-cover d-flex align-items-center justify-content-center bg-secondary text-white">
+                        No Image
+                    </div>
+                }
+
+                <div class="artist-body">
+                    <div class="row">
+                        <strong>@artist.Name</strong>
+                        <span class="badge">@(artist.Genre?.Name ?? "Unknown")</span>
+                    </div>
+
+                    <p class="muted">
+                        @{
+                            var shortBio = string.IsNullOrWhiteSpace(artist.Bio)
+                                ? "No description available."
+                                : artist.Bio;
+
+                            if (shortBio.Length > 70)
+                            {
+                                shortBio = shortBio.Substring(0, 70) + "...";
+                            }
+                        }
+                        @shortBio
+                    </p>
+
+                    <div class="row">
+                        <a class="btn"
+                               asp-controller="Explore"
+                               asp-action="Details"
+                               asp-route-id="@artist.Id">
+                            Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

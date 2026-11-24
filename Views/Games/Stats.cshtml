@@ -1,0 +1,131 @@
+@model NextVibe.Models.ViewModels.Games.UserGameStatsViewModel
+
+@{
+    ViewData["Title"] = "Personal stats - NextVibe Games";
+}
+
+<div class="container py-4" style="max-width: 960px;">
+    <!-- Profile & Rank Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary mb-2">← Back to games</a>
+            <h2 class="fw-bold m-0">📊 Profile and stats</h2>
+            <p class="text-muted small m-0">Your progress in NextVibe Games</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end">
+                <div class="small text-muted">Your music rank</div>
+                <div class="fw-bold fs-5 text-warning">@Model.RankBadge @Model.RankTitle</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card p-3 text-center" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;">
+                <span class="text-muted small">Total points (XP)</span>
+                <span class="fs-3 fw-bold text-success mt-1">@Model.TotalScore</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card p-3 text-center" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;">
+                <span class="text-muted small">Games played</span>
+                <span class="fs-3 fw-bold text-primary mt-1">@Model.TotalGames</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card p-3 text-center" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;">
+                <span class="text-muted small">Answer accuracy</span>
+                <span class="fs-3 fw-bold text-info mt-1">@Model.AccuracyPercentage%</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card p-3 text-center" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;">
+                <span class="text-muted small">Daily streak</span>
+                <span class="fs-3 fw-bold text-warning mt-1">🔥 @Model.CurrentStreak @(Model.CurrentStreak == 1 ? "day" : "days")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Bests by Game Mode -->
+    <div class="card p-4 mb-4" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+        <h4 class="fw-bold mb-3">🏅 Best scores by mode</h4>
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="fs-4 mb-1">🎵</div>
+                    <div class="small text-muted">Guess the Song</div>
+                    <div class="fw-bold fs-5 text-light mt-1">@Model.BestScoreSong pts</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="fs-4 mb-1">💿</div>
+                    <div class="small text-muted">Guess the Album</div>
+                    <div class="fw-bold fs-5 text-light mt-1">@Model.BestScoreAlbum pts</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="fs-4 mb-1">✍️</div>
+                    <div class="small text-muted">Finish the Lyric</div>
+                    <div class="fw-bold fs-5 text-light mt-1">@Model.BestScoreLyrics pts</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded text-center" style="background: #0f1115; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="fs-4 mb-1">📅</div>
+                    <div class="small text-muted">Daily Challenge</div>
+                    <div class="fw-bold fs-5 text-light mt-1">@Model.BestScoreDaily pts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete History Table -->
+    <div class="card p-0" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
+        <div class="p-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0">📜 Your game history</h5>
+            <span class="small text-muted">@Model.ScoreHistory.Count games played</span>
+        </div>
+        @if (Model.ScoreHistory.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-hover m-0 align-middle">
+                    <thead>
+                        <tr style="background: #111318; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                            <th class="ps-3">Date</th>
+                            <th>Game mode</th>
+                            <th>Score</th>
+                            <th>Accuracy</th>
+                            <th>Duration</th>
+                            <th class="pe-3">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.ScoreHistory)
+                        {
+                            <tr>
+                                <td class="ps-3 text-muted small">@s.PlayedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                                <td><span class="badge bg-secondary">@s.GameType</span></td>
+                                <td><span class="fw-bold text-success">@s.Score pts</span></td>
+                                <td>@s.CorrectAnswers / @s.TotalRounds</td>
+                                <td class="text-muted">@s.DurationSeconds s</td>
+                                <td class="pe-3 small text-muted">@(s.TargetArtistName ?? "Full catalog")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <p class="text-muted">No games yet. Start one from the dashboard!</p>
+                <a asp-action="Index" class="btn btn-primary btn-sm">Go to games ▶</a>
+            </div>
+        }
+    </div>
+</div>
+

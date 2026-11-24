@@ -1,0 +1,51 @@
+﻿@model NextVibe.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "User Details";
+    var roles = ViewBag.UserRoles as IEnumerable<string> ?? Enumerable.Empty<string>();
+}
+
+<div class="py-5">
+
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1">User Details</h1>
+        <p class="text-muted mb-0">
+            View information about this registered user.
+        </p>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">First Name</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.FirstName) ? "Not provided" : Model.FirstName)</dd>
+
+                <dt class="col-sm-3">Last Name</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.LastName) ? "Not provided" : Model.LastName)</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Username</dt>
+                <dd class="col-sm-9">@Model.UserName</dd>
+
+                <dt class="col-sm-3">Roles</dt>
+                <dd class="col-sm-9">
+                    @if (roles.Any())
+                    {
+                        @string.Join(", ", roles)
+                    }
+                    else
+                    {
+                        <span>No roles assigned</span>
+                    }
+                </dd>
+            </dl>
+
+            <div class="d-flex gap-2 mt-4 flex-wrap">
+                <a asp-action="Index" class="btn btn-outline-light">Back to List</a>
+            </div>
+        </div>
+    </div>
+
+</div>

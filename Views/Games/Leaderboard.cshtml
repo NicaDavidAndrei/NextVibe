@@ -1,0 +1,109 @@
+@model List<NextVibe.Models.GameScore>
+
+@{
+    ViewData["Title"] = "Leaderboard - NextVibe Games";
+    var currentGameType = ViewBag.CurrentGameType as string;
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary mb-2">← Back to games</a>
+            <h2 class="fw-bold m-0">🏆 Player leaderboard</h2>
+            <p class="text-muted small m-0">The best music fans on NextVibe</p>
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+        <a asp-action="Leaderboard" class="btn @(string.IsNullOrEmpty(currentGameType) ? "btn-primary" : "btn-outline-secondary") btn-sm">
+            All modes
+        </a>
+        <a asp-action="Leaderboard" asp-route-gameType="GuessSong" class="btn @(currentGameType == "GuessSong" ? "btn-primary" : "btn-outline-secondary") btn-sm">
+            🎵 Guess the Song
+        </a>
+        <a asp-action="Leaderboard" asp-route-gameType="GuessAlbumBlur" class="btn @(currentGameType == "GuessAlbumBlur" ? "btn-primary" : "btn-outline-secondary") btn-sm">
+            🌫️ Guess the Album (Blur)
+        </a>
+        <a asp-action="Leaderboard" asp-route-gameType="GuessAlbumColor" class="btn @(currentGameType == "GuessAlbumColor" ? "btn-primary" : "btn-outline-secondary") btn-sm">
+            🎨 Guess the Album (Color)
+        </a>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="card p-0" style="background: #171a21; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-hover m-0 align-middle">
+                    <thead>
+                        <tr style="background: #111318; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                            <th class="ps-4" style="width: 70px;">Rank</th>
+                            <th>Player</th>
+                            <th>Game mode</th>
+                            <th>Score</th>
+                            <th>Accuracy</th>
+                            <th>Time</th>
+                            <th class="pe-4 text-end">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int rank = 1; }
+                        @foreach (var score in Model)
+                        {
+                            string rankBadge = rank switch
+                            {
+                                1 => "🥇",
+                                2 => "🥈",
+                                3 => "🥉",
+                                _ => $"#{rank}"
+                            };
+
+                            string displayName = score.User != null
+                                ? (!string.IsNullOrWhiteSpace(score.User.FirstName) ? $"{score.User.FirstName} {score.User.LastName}".Trim() : score.User.UserName ?? "Anonymous")
+                                : "Guest player";
+
+                            <tr>
+                                <td class="ps-4 fw-bold fs-5">@rankBadge</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                            @(displayName.Substring(0, 1).ToUpper())
+                                        </div>
+                                        <span class="fw-semibold">@displayName</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@score.GameType</span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-success fs-6">@score.Score pts</span>
+                                </td>
+                                <td>
+                                    <span class="text-light">@score.CorrectAnswers / @score.TotalRounds</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@score.DurationSeconds s</span>
+                                </td>
+                                <td class="pe-4 text-end text-muted small">
+                                    @score.PlayedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                </td>
+                            </tr>
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div style="font-size: 2.5rem;" class="mb-2">🎮</div>
+                <h5 class="fw-bold">No scores yet</h5>
+                <p class="text-muted">Be the first to play and put your name on the board!</p>
+                <a asp-action="Index" class="btn btn-primary mt-2">Start a game ▶</a>
+            </div>
+        }
+    </div>
+</div>
+

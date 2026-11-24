@@ -1,0 +1,114 @@
+﻿@model IEnumerable<NextVibe.Models.ArtistAlbum>
+
+@{
+    ViewData["Title"] = "Manage Albums";
+}
+
+<div class="py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Manage Albums</h1>
+            <p class="text-muted mb-0">Create, edit and delete artist discographies.</p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="Index" class="btn btn-outline-light">
+                Back to Albums
+            </a>
+
+            <a asp-action="Create" class="btn btn-primary nv-btn-primary">
+                + Add Album
+            </a>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form asp-action="Manage" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-10">
+                        <label class="form-label">Search albums</label>
+                        <input type="text"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               class="form-control bg-black text-white border-secondary"
+                               placeholder="Search by album, artist or description..." />
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <button type="submit" class="btn btn-primary nv-btn-primary w-100">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-4">
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>Cover</th>
+                            <th>Artist</th>
+                            <th>Title</th>
+                            <th>Release Year</th>
+                            <th style="width:160px;">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var album in Model)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(album.CoverImageUrl))
+                                    {
+                                        <img src="@album.CoverImageUrl"
+                                             alt="@album.Title"
+                                             style="width: 56px; height: 56px; object-fit: cover; border-radius: 10px;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex align-items-center justify-content-center bg-secondary text-white"
+                                             style="width: 56px; height: 56px; border-radius: 10px; font-size: 12px;">
+                                            No Cover
+                                        </div>
+                                    }
+                                </td>
+
+                                <td>@album.Artist?.Name</td>
+                                <td>@album.Title</td>
+                                <td>@(album.ReleaseYear.HasValue ? album.ReleaseYear.ToString() : "—")</td>
+
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a asp-action="Edit"
+                                               asp-route-id="@album.Id"
+                                               class="btn btn-sm btn-outline-light">
+                                            Edit
+                                        </a>
+
+                                        <a asp-action="Delete"
+                                               asp-route-id="@album.Id"
+                                               class="btn btn-sm btn-outline-danger">
+                                            Delete
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>

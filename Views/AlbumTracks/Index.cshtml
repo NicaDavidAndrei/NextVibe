@@ -1,0 +1,149 @@
+﻿@model IEnumerable<NextVibe.Models.AlbumTrack>
+
+@{
+    ViewData["Title"] = "Album Tracks";
+}
+
+<div class="py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Album Tracks</h1>
+            <p class="text-muted mb-0">
+                Manage all tracks, durations and top track selections.
+            </p>
+        </div>
+
+        <a asp-action="Create" class="btn btn-primary nv-btn-primary">
+            Add Track
+        </a>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form asp-action="Index" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-10">
+                        <label class="form-label">Search tracks</label>
+                        <input type="text"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               class="form-control bg-black text-white border-secondary"
+                               placeholder="Search by track, album or artist..." />
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <button type="submit" class="btn btn-primary nv-btn-primary w-100">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-body p-0">
+
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Album</th>
+                                <th>Artist</th>
+                                <th>Track</th>
+                                <th class="text-center">No.</th>
+                                <th class="text-center">Duration</th>
+                                <th class="text-center">Top Track</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                var minutes = item.DurationSeconds / 60;
+                                var seconds = item.DurationSeconds % 60;
+                                var duration = item.DurationSeconds > 0
+                                    ? string.Format("{0}:{1:00}", minutes, seconds)
+                                    : "N/A";
+
+                                <tr>
+                                    <td class="fw-semibold">
+                                        @(item.ArtistAlbum?.Title ?? "Unknown Album")
+                                    </td>
+
+                                    <td class="text-muted">
+                                        @(item.ArtistAlbum?.Artist?.Name ?? "Unknown Artist")
+                                    </td>
+
+                                    <td>
+                                        @item.Name
+                                    </td>
+
+                                    <td class="text-center">
+                                        @item.TrackNumber
+                                    </td>
+
+                                    <td class="text-center">
+                                        @duration
+                                    </td>
+
+                                    <td class="text-center">
+                                        @if (item.IsTopTrack)
+                                        {
+                                            <span class="badge rounded-pill nv-pill">Top</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary rounded-pill">Normal</span>
+                                        }
+                                    </td>
+
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a asp-action="Details"
+                                                   asp-route-id="@item.Id"
+                                                   class="btn btn-outline-light">
+                                                Details
+                                            </a>
+
+                                            <a asp-action="Edit"
+                                                   asp-route-id="@item.Id"
+                                                   class="btn btn-outline-warning">
+                                                Edit
+                                            </a>
+
+                                            <a asp-action="Delete"
+                                                   asp-route-id="@item.Id"
+                                                   class="btn btn-outline-danger">
+                                                Delete
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="p-4 text-center">
+                    <h5 class="fw-bold mb-2">No tracks found</h5>
+                    <p class="text-muted mb-3">
+                        Start by adding tracks to your albums.
+                    </p>
+
+                    <a asp-action="Create" class="btn btn-primary nv-btn-primary">
+                        Add First Track
+                    </a>
+                </div>
+            }
+
+        </div>
+    </div>
+
+</div>
